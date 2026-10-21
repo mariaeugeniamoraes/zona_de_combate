@@ -150,13 +150,15 @@ int main(void) {
 
             // VERIFICAR O VENCEDOR DA PARTIDA
             if (vitoriasJogador1 >= 2) {
-            vencedorPartida = 1;
-            estado = VITORIA;
-        }
-        else if (vitoriasJogador2 >= 2) {
-                 vencedorPartida = 2;
-                 estado = VITORIA;
-        }
+                vencedorPartida = 1;
+                salvarVitoria(personagemJogador1);
+                estado = VITORIA;
+            }
+            else if (vitoriasJogador2 >= 2) {
+                     vencedorPartida = 2;
+                     salvarVitoria(personagemJogador2);
+                     estado = VITORIA;
+            }
 
         // INICIAR O PROXIMO ROUND
         else if (roundFinalizado == 1) {
@@ -356,12 +358,7 @@ int main(void) {
 
         // TELA DE RANKING
         else if (estado == RANKING) {
-
-            DrawText("RANKING",
-                     390, 200, 40, WHITE);
-
-            DrawText("PRESSIONE ESC PARA VOLTAR",
-                     290, 400, 20, LIGHTGRAY);
+            desenharRanking();
         }
 
         EndDrawing();

@@ -9,5 +9,14 @@ typedef enum {
     RANKING
 } EstadoJogo;
 
+
+typedef struct {
+    char nome[30];
+    int vitorias;
+} RegistroRanking;
+
 void desenharMenu(void);
+void salvarVitoria(int personagemVencedor);
+void desenharRanking(void);
+
 #endif
