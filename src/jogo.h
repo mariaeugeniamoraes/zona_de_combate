@@ -18,5 +18,7 @@ typedef struct {
 void desenharMenu(void);
 void salvarVitoria(int personagemVencedor);
 void desenharRanking(void);
+void desenharVitoria(int vencedorPartida, int vitoriasJogador1, int vitoriasJogador2);
+void desenharSelecao(int personagemJogador1, int personagemJogador2);
 
 #endif

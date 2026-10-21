@@ -232,30 +232,11 @@ int main(void) {
             desenharMenu();
         }
 
-        // =====================================
         // TELA DE SELECAO DE PERSONAGENS
-        // =====================================
         else if (estado == SELECAO) {
 
-            DrawText("ESCOLHA SEU PERSONAGEM",
-                     200, 50, 30, WHITE);
-
-            // JOGADOR 1
-            DrawText("JOGADOR 1", 100, 130, 25, WHITE);
-
-            DrawText("1 - KAI (RAIO)", 100, 180, 20, YELLOW);
-            DrawText("2 - LUNA (FOGO)", 100, 220, 20, RED);
-            DrawText("3 - NERO (AGUA)", 100, 260, 20, BLUE);
-            DrawText("4 - AYRA (VENTO)", 100, 300, 20, GREEN);
-
-            // JOGADOR 2
-            DrawText("JOGADOR 2", 550, 130, 25, WHITE);
-
-            DrawText("Q - KAI (RAIO)", 550, 180, 20, YELLOW);
-            DrawText("W - LUNA (FOGO)", 550, 220, 20, RED);
-            DrawText("E - NERO (AGUA)", 550, 260, 20, BLUE);
-            DrawText("R - AYRA (VENTO)", 550, 300, 20, GREEN);
-
+            desenharSelecao(personagemJogador1, personagemJogador2);
+        }
             // PERSONAGEM ESCOLHIDO PELO JOGADOR 1
             if (personagemJogador1 == 1) {
 
