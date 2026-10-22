@@ -4,30 +4,32 @@
 
 int main(void) {
 
+    // CONFIGURACAO DA JANELA
     InitWindow(960, 540, "Zona de Combate");
 
     SetExitKey(KEY_NULL);
     SetTargetFPS(60);
 
+    // ESTADO INICIAL
     EstadoJogo estado = MENU;
 
     // PERSONAGENS SELECIONADOS
     int personagemJogador1 = 0;
     int personagemJogador2 = 0;
 
-    // CRONOMETRO
-    float tempoRestante = 60.0f;
+    // DADOS DA PARTIDA
+    Partida partida = {
+        .roundAtual = 1,
+        .vitoriasJogador1 = 0,
+        .vitoriasJogador2 = 0,
+        .vidaJogador1 = 100,
+        .vidaJogador2 = 100,
+        .tempoRestante = 60.0f
+    };
 
-    // SISTEMA DE ROUNDS
-    int roundAtual = 1;
-    int vitoriasJogador1 = 0;
-    int vitoriasJogador2 = 0;
     int vencedorPartida = 0;
 
-    // VIDA DOS JOGADORES
-    int vidaJogador1 = 100;
-    int vidaJogador2 = 100;
-
+    // LOOP PRINCIPAL
     while (!WindowShouldClose()) {
 
         // =====================================
@@ -53,11 +55,11 @@ int main(void) {
         }
 
         // =====================================
-        // SELECAO DOS PERSONAGENS
+        // SELECAO DE PERSONAGENS
         // =====================================
         else if (estado == SELECAO) {
 
-            // JOGADOR 1: TECLAS 1, 2, 3 E 4
+            // JOGADOR 1
             if (personagemJogador1 == 0) {
 
                 if (IsKeyPressed(KEY_ONE)) {
@@ -74,7 +76,7 @@ int main(void) {
                 }
             }
 
-            // JOGADOR 2: TECLAS Q, W, E E R
+            // JOGADOR 2
             if (personagemJogador2 == 0) {
 
                 if (IsKeyPressed(KEY_Q)) {
@@ -91,128 +93,118 @@ int main(void) {
                 }
             }
 
-            // INICIAR A PARTIDA COM ENTER
+            // INICIAR A PARTIDA
             if (personagemJogador1 != 0 &&
-                personagemJogador2 != 0) {
+                personagemJogador2 != 0 &&
+                IsKeyPressed(KEY_ENTER)) {
 
-                if (IsKeyPressed(KEY_ENTER)) {
+                iniciarPartida(&partida);
 
-                    // REINICIAR OS VALORES
-                    tempoRestante = 60.0f;
+                vencedorPartida = 0;
 
-                    roundAtual = 1;
-
-                    vitoriasJogador1 = 0;
-                    vitoriasJogador2 = 0;
-
-                    vencedorPartida = 0;
-
-                    vidaJogador1 = 100;
-                    vidaJogador2 = 100;
-
-                    estado = LUTA;
-                }
+                estado = LUTA;
             }
         }
 
         // =====================================
-        // SISTEMA DE LUTA E ROUNDS
+        // SISTEMA DE LUTA
         // =====================================
         else if (estado == LUTA) {
 
             // ATUALIZAR O CRONOMETRO
-            if (tempoRestante > 0.0f) {
+            if (partida.tempoRestante > 0.0f) {
 
-                tempoRestante -= GetFrameTime();
+                partida.tempoRestante -= GetFrameTime();
 
-                if (tempoRestante < 0.0f) {
-                    tempoRestante = 0.0f;
+                if (partida.tempoRestante < 0.0f) {
+                    partida.tempoRestante = 0.0f;
                 }
             }
 
-            // TESTE DE DANO NO JOGADOR 1
-            if (IsKeyPressed(KEY_A) && vidaJogador1 > 0) {
+            // DANO PROVISORIO NO JOGADOR 1
+            if (IsKeyPressed(KEY_A) &&
+                partida.vidaJogador1 > 0) {
 
-                vidaJogador1 -= 10;
+                partida.vidaJogador1 -= 10;
             }
 
-            // TESTE DE DANO NO JOGADOR 2
-            if (IsKeyPressed(KEY_L) && vidaJogador2 > 0) {
+            // DANO PROVISORIO NO JOGADOR 2
+            if (IsKeyPressed(KEY_L) &&
+                partida.vidaJogador2 > 0) {
 
-                vidaJogador2 -= 10;
+                partida.vidaJogador2 -= 10;
             }
 
-            // VERIFICAR SE O ROUND TERMINOU
+            // VERIFICAR FIM DO ROUND
             int roundFinalizado = 0;
 
-            // JOGADOR 1 FICOU SEM VIDA
-            if (vidaJogador1 <= 0) {
+            // JOGADOR 1 PERDEU TODA A VIDA
+            if (partida.vidaJogador1 <= 0) {
 
-                vitoriasJogador2++;
+                partida.vitoriasJogador2++;
+
                 roundFinalizado = 1;
             }
 
-            // JOGADOR 2 FICOU SEM VIDA
-            else if (vidaJogador2 <= 0) {
+            // JOGADOR 2 PERDEU TODA A VIDA
+            else if (partida.vidaJogador2 <= 0) {
 
-                vitoriasJogador1++;
+                partida.vitoriasJogador1++;
+
                 roundFinalizado = 1;
             }
 
-            // VERIFICAR SE O TEMPO ACABOU
-            else if (tempoRestante <= 0.0f) {
+            // TEMPO ESGOTADO
+            else if (partida.tempoRestante <= 0.0f) {
 
-                if (vidaJogador1 > vidaJogador2) {
+                if (partida.vidaJogador1 >
+                    partida.vidaJogador2) {
 
-                    vitoriasJogador1++;
+                    partida.vitoriasJogador1++;
                 }
-                else if (vidaJogador2 > vidaJogador1) {
+                else if (partida.vidaJogador2 >
+                         partida.vidaJogador1) {
 
-                    vitoriasJogador2++;
+                    partida.vitoriasJogador2++;
                 }
 
-                // EMPATE: NINGUEM GANHA PONTO
+                // EMPATE: NINGUEM PONTUA
                 roundFinalizado = 1;
             }
 
-            // VERIFICAR SE JOGADOR 1 VENCEU A PARTIDA
-            if (vitoriasJogador1 >= 2) {
+            // =====================================
+            // VERIFICAR VENCEDOR DA PARTIDA
+            // =====================================
+
+            // JOGADOR 1 VENCEU DOIS ROUNDS
+            if (partida.vitoriasJogador1 >= 2) {
 
                 vencedorPartida = 1;
 
-                // SALVAR VITORIA NO RANKING
                 salvarVitoria(personagemJogador1);
 
                 estado = VITORIA;
             }
 
-            // VERIFICAR SE JOGADOR 2 VENCEU A PARTIDA
-            else if (vitoriasJogador2 >= 2) {
+            // JOGADOR 2 VENCEU DOIS ROUNDS
+            else if (partida.vitoriasJogador2 >= 2) {
 
                 vencedorPartida = 2;
 
-                // SALVAR VITORIA NO RANKING
                 salvarVitoria(personagemJogador2);
 
                 estado = VITORIA;
             }
 
-            // INICIAR O PROXIMO ROUND
+            // PROXIMO ROUND
             else if (roundFinalizado == 1) {
 
-                // AVANCAR APENAS UM ROUND
-                roundAtual++;
-
-                // REINICIAR CRONOMETRO E VIDA
-                tempoRestante = 60.0f;
-
-                vidaJogador1 = 100;
-                vidaJogador2 = 100;
+                reiniciarRound(&partida);
             }
         }
 
         // =====================================
-        // VOLTAR AO MENU COM ESC
+        // VOLTAR AO MENU
         // =====================================
         if (estado != MENU && IsKeyPressed(KEY_ESCAPE)) {
 
@@ -220,69 +212,25 @@ int main(void) {
         }
 
         // =====================================
-        // INICIO DO DESENHO
+        // DESENHAR AS TELAS
         // =====================================
         BeginDrawing();
 
         ClearBackground(BLACK);
 
-        // TELA DO MENU PRINCIPAL
+        // MENU
         if (estado == MENU) {
 
             desenharMenu();
         }
 
-        // TELA DE SELECAO DE PERSONAGENS
+        // SELECAO
         else if (estado == SELECAO) {
 
-            desenharSelecao(personagemJogador1, personagemJogador2);
-        }
-            // PERSONAGEM ESCOLHIDO PELO JOGADOR 1
-            if (personagemJogador1 == 1) {
-
-                DrawText("J1: KAI", 100, 390, 25, YELLOW);
-            }
-            else if (personagemJogador1 == 2) {
-
-                DrawText("J1: LUNA", 100, 390, 25, RED);
-            }
-            else if (personagemJogador1 == 3) {
-
-                DrawText("J1: NERO", 100, 390, 25, BLUE);
-            }
-            else if (personagemJogador1 == 4) {
-
-                DrawText("J1: AYRA", 100, 390, 25, GREEN);
-            }
-
-            // PERSONAGEM ESCOLHIDO PELO JOGADOR 2
-            if (personagemJogador2 == 1) {
-
-                DrawText("J2: KAI", 550, 390, 25, YELLOW);
-            }
-            else if (personagemJogador2 == 2) {
-
-                DrawText("J2: LUNA", 550, 390, 25, RED);
-            }
-            else if (personagemJogador2 == 3) {
-
-                DrawText("J2: NERO", 550, 390, 25, BLUE);
-            }
-            else if (personagemJogador2 == 4) {
-
-                DrawText("J2: AYRA", 550, 390, 25, GREEN);
-            }
-
-            // VERIFICAR SE OS DOIS ESTAO PRONTOS
-            if (personagemJogador1 != 0 &&
-                personagemJogador2 != 0) {
-
-                DrawText("OS DOIS JOGADORES ESTAO PRONTOS!",
-                         230, 450, 22, WHITE);
-
-                DrawText("PRESSIONE ENTER PARA LUTAR",
-                         290, 490, 20, GREEN);
-            }
+            desenharSelecao(
+                personagemJogador1,
+                personagemJogador2
+            );
         }
 
         // =====================================
@@ -292,61 +240,92 @@ int main(void) {
 
             // CRONOMETRO
             DrawText(
-                TextFormat("TEMPO: %d", (int)tempoRestante),
+                TextFormat(
+                    "TEMPO: %d",
+                    (int)partida.tempoRestante
+                ),
                 400, 30, 30, WHITE
             );
 
-            // ROUND ATUAL
+            // ROUND
             DrawText(
-                TextFormat("ROUND %d", roundAtual),
+                TextFormat(
+                    "ROUND %d",
+                    partida.roundAtual
+                ),
                 400, 80, 30, YELLOW
             );
 
             // BARRA DE VIDA DO JOGADOR 1
-            DrawRectangle(100, 120, 250, 25, DARKGRAY);
+            DrawRectangle(
+                100, 120, 250, 25, DARKGRAY
+            );
 
             DrawRectangle(
-                100, 120,
-                vidaJogador1 * 250 / 100,
-                25, GREEN
+                100,
+                120,
+                partida.vidaJogador1 * 250 / 100,
+                25,
+                GREEN
             );
 
             // BARRA DE VIDA DO JOGADOR 2
-            DrawRectangle(610, 120, 250, 25, DARKGRAY);
+            DrawRectangle(
+                610, 120, 250, 25, DARKGRAY
+            );
 
             DrawRectangle(
-                610, 120,
-                vidaJogador2 * 250 / 100,
-                25, GREEN
+                610,
+                120,
+                partida.vidaJogador2 * 250 / 100,
+                25,
+                GREEN
             );
 
             // PLACAR DO JOGADOR 1
             DrawText(
-                TextFormat("J1: %d", vitoriasJogador1),
+                TextFormat(
+                    "J1: %d",
+                    partida.vitoriasJogador1
+                ),
                 100, 30, 25, WHITE
             );
 
             // PLACAR DO JOGADOR 2
             DrawText(
-                TextFormat("J2: %d", vitoriasJogador2),
+                TextFormat(
+                    "J2: %d",
+                    partida.vitoriasJogador2
+                ),
                 750, 30, 25, WHITE
             );
 
-            DrawText("ZONA DE COMBATE - LUTA",
-                     220, 160, 30, WHITE);
+            // TITULO
+            DrawText(
+                "ZONA DE COMBATE - LUTA",
+                220, 160, 30, WHITE
+            );
 
-            DrawText("PREPARAR PARA LUTAR!",
-                     270, 250, 25, YELLOW);
+            DrawText(
+                "PREPARAR PARA LUTAR!",
+                270, 250, 25, YELLOW
+            );
 
-            // CONTROLES PROVISORIOS DE DANO
-            DrawText("A - DANO NO J1",
-                     150, 350, 22, GREEN);
+            // CONTROLES PROVISORIOS
+            DrawText(
+                "A - DANO NO J1",
+                150, 350, 22, GREEN
+            );
 
-            DrawText("L - DANO NO J2",
-                     600, 350, 22, GREEN);
+            DrawText(
+                "L - DANO NO J2",
+                600, 350, 22, GREEN
+            );
 
-            DrawText("ESC - VOLTAR AO MENU",
-                     330, 450, 20, LIGHTGRAY);
+            DrawText(
+                "ESC - VOLTAR AO MENU",
+                330, 450, 20, LIGHTGRAY
+            );
         }
 
         // =====================================
@@ -356,8 +335,8 @@ int main(void) {
 
             desenharVitoria(
                 vencedorPartida,
-                vitoriasJogador1,
-                vitoriasJogador2
+                partida.vitoriasJogador1,
+                partida.vitoriasJogador2
             );
         }
 
