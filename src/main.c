@@ -4,68 +4,554 @@
 #include "cenarios.h"
 #include "interface.h"
 #include "efeito.h"
+#include "personagens.h"
+
+#include <stdbool.h>
 #include <stddef.h>
+#include <math.h>
 
 // =====================================
-// PREPARAR VISUAL DE UMA NOVA PARTIDA
+// CONFIGURACOES
 // =====================================
 
-static void prepararVisualPartida(Efeito **listaEfeitos) {
+#define VIDA_MAXIMA 100
+#define ENERGIA_MAXIMA 100.0f
 
-    liberarEfeitos(listaEfeitos);
+#define DANO_SOCO 10
+#define DANO_CHUTE 15
+#define DANO_FOGO 25
 
-    // ARENA SORTEADA A CADA PARTIDA
-    carregarArena((ArenaId)GetRandomValue(0, TOTAL_ARENAS - 1));
+#define CUSTO_FOGO 50.0f
 
-    anunciarTexto(listaEfeitos, "ROUND 1", YELLOW, 0.0f, 1.1f);
-    anunciarTexto(listaEfeitos, "LUTEM!", RED, 1.1f, 0.8f);
+#define ALCANCE_SOCO 85.0f
+#define ALCANCE_CHUTE 115.0f
+
+#define TEMPO_SOCO 0.5f
+#define TEMPO_CHUTE 0.625f
+#define TEMPO_ESPECIAL 1.0f
+#define TEMPO_DANO 0.375f
+
+#define VELOCIDADE_FOGO 460.0f
+#define RAIO_FOGO 19.0f
+
+#define TEMPO_FIM_ROUND 1.6f
+
+// =====================================
+// ESTRUTURA DA BOLA DE FOGO
+// =====================================
+
+typedef struct {
+    bool ativa;
+    Vector2 posicao;
+    int direcao;
+    int dono;
+    float tempo;
+} BolaFogo;
+
+// =====================================
+// VERIFICAR ALCANCE DOS GOLPES
+// =====================================
+
+static bool golpeAcertou(
+    Vector2 atacante,
+    Vector2 defensor,
+    float alcance,
+    bool viradoEsquerda
+) {
+    float dx = defensor.x - atacante.x;
+    float dy = fabsf(defensor.y - atacante.y);
+
+    if (viradoEsquerda && dx >= 0.0f) {
+        return false;
+    }
+
+    if (!viradoEsquerda && dx <= 0.0f) {
+        return false;
+    }
+
+    return fabsf(dx) <= alcance && dy <= 65.0f;
 }
+
+// =====================================
+// COLISAO ENTRE OS PERSONAGENS
+// =====================================
+
+static void impedirSobreposicao(
+    Vector2 *j1,
+    Vector2 *j2
+) {
+    const float distanciaMinima = 70.0f;
+    const float esquerda = 65.0f;
+    const float direita = LARGURA_TELA - 65.0f;
+
+    float dx = j2->x - j1->x;
+
+    // Permite passar por cima do adversario
+    // quando existe separacao vertical suficiente.
+    if (fabsf(j2->y - j1->y) > 85.0f) {
+        return;
+    }
+
+    if (fabsf(dx) >= distanciaMinima) {
+        return;
+    }
+
+    float falta = distanciaMinima - fabsf(dx);
+
+    if (dx >= 0.0f) {
+        j1->x -= falta / 2.0f;
+        j2->x += falta / 2.0f;
+    }
+    else {
+        j1->x += falta / 2.0f;
+        j2->x -= falta / 2.0f;
+    }
+
+    if (j1->x < esquerda) {
+        j1->x = esquerda;
+        j2->x = esquerda + distanciaMinima;
+    }
+
+    if (j2->x < esquerda) {
+        j2->x = esquerda;
+        j1->x = esquerda + distanciaMinima;
+    }
+
+    if (j1->x > direita) {
+        j1->x = direita;
+        j2->x = direita - distanciaMinima;
+    }
+
+    if (j2->x > direita) {
+        j2->x = direita;
+        j1->x = direita - distanciaMinima;
+    }
+}
+
+// =====================================
+// APLICAR DANO
+// =====================================
+
+static void aplicarDano(int *vida, int dano) {
+    if (vida == NULL || dano <= 0) {
+        return;
+    }
+
+    *vida -= dano;
+
+    if (*vida < 0) {
+        *vida = 0;
+    }
+}
+
+// =====================================
+// ATUALIZAR TEMPORIZADOR
+// =====================================
+
+static void atualizarTempo(float *tempo, float dt) {
+    if (*tempo > 0.0f) {
+        *tempo -= dt;
+
+        if (*tempo < 0.0f) {
+            *tempo = 0.0f;
+        }
+    }
+}
+
+// =====================================
+// APLICAR GOLPE NORMAL
+// =====================================
+
+static bool executarGolpe(
+    Vector2 atacante,
+    Vector2 defensor,
+    bool viradoEsquerda,
+    float alcance,
+    int dano,
+    bool defendendo,
+    int *vida,
+    float *energia,
+    float *tempoDano,
+    Efeito **efeitos
+) {
+    if (!golpeAcertou(
+        atacante,
+        defensor,
+        alcance,
+        viradoEsquerda
+    )) {
+        return false;
+    }
+
+    aplicarDano(
+        vida,
+        defendendo ? dano / 5 : dano
+    );
+
+    *energia += (float)dano;
+
+    if (*energia > ENERGIA_MAXIMA) {
+        *energia = ENERGIA_MAXIMA;
+    }
+
+    if (!defendendo && *vida > 0) {
+        *tempoDano = TEMPO_DANO;
+    }
+
+    efeitoImpacto(
+        efeitos,
+        (Vector2){
+            defensor.x,
+            defensor.y - 70.0f
+        }
+    );
+
+    return true;
+}
+
+// =====================================
+// CRIAR BOLA DE FOGO
+// =====================================
+
+static void criarBolaFogo(
+    BolaFogo *bola,
+    Vector2 personagem,
+    bool viradoEsquerda,
+    int dono
+) {
+    bola->ativa = true;
+    bola->direcao = viradoEsquerda ? -1 : 1;
+    bola->dono = dono;
+    bola->tempo = 0.0f;
+
+    bola->posicao = (Vector2){
+        personagem.x + bola->direcao * 55.0f,
+        personagem.y - 75.0f
+    };
+}
+
+// =====================================
+// ATUALIZAR BOLA DE FOGO
+// =====================================
+
+static void atualizarBolaFogo(
+    BolaFogo *bola,
+    Vector2 adversario,
+    bool adversarioDefendendo,
+    int *vidaAdversario,
+    float *tempoDanoAdversario,
+    float *tempoAtaqueAdversario,
+    Efeito **efeitos,
+    float dt
+) {
+    if (!bola->ativa) {
+        return;
+    }
+
+    float xAnterior = bola->posicao.x;
+
+    bola->posicao.x +=
+        bola->direcao * VELOCIDADE_FOGO * dt;
+
+    bola->tempo += dt;
+
+    // A bola deve cruzar a faixa horizontal do corpo.
+    float esquerdaCorpo = adversario.x - 28.0f;
+    float direitaCorpo = adversario.x + 28.0f;
+
+    float inicioTrajeto = fminf(
+        xAnterior,
+        bola->posicao.x
+    );
+
+    float fimTrajeto = fmaxf(
+        xAnterior,
+        bola->posicao.x
+    );
+
+    bool cruzouCorpo =
+        fimTrajeto + RAIO_FOGO >= esquerdaCorpo &&
+        inicioTrajeto - RAIO_FOGO <= direitaCorpo;
+
+    // Centro aproximado do corpo do adversario.
+    float centroY = adversario.y - 70.0f;
+
+    bool mesmaAltura =
+        fabsf(bola->posicao.y - centroY) <= 58.0f;
+
+    if (cruzouCorpo && mesmaAltura) {
+
+        int dano = adversarioDefendendo
+            ? DANO_FOGO / 5
+            : DANO_FOGO;
+
+        aplicarDano(vidaAdversario, dano);
+
+        if (
+            !adversarioDefendendo &&
+            *vidaAdversario > 0
+        ) {
+            *tempoDanoAdversario = TEMPO_DANO;
+            *tempoAtaqueAdversario = 0.0f;
+        }
+
+        efeitoImpacto(
+            efeitos,
+            (Vector2){
+                adversario.x,
+                adversario.y - 70.0f
+            }
+        );
+
+        efeitoFlash(
+            efeitos,
+            ORANGE,
+            0.12f
+        );
+
+        bola->ativa = false;
+        return;
+    }
+
+    // Desaparece quando sai da arena.
+    if (
+        bola->posicao.x < -50.0f ||
+        bola->posicao.x > LARGURA_TELA + 50.0f
+    ) {
+        bola->ativa = false;
+    }
+}
+
+// =====================================
+// DESENHAR BOLA DE FOGO
+// =====================================
+
+static void desenharBolaFogo(const BolaFogo *bola) {
+    if (!bola->ativa) {
+        return;
+    }
+
+    Vector2 centro = bola->posicao;
+
+    float oscilacao = sinf(bola->tempo * 25.0f);
+
+    // Rastro
+    for (int i = 1; i <= 5; i++) {
+
+        Vector2 rastro = {
+            centro.x - bola->direcao * i * 12.0f,
+            centro.y + sinf(bola->tempo * 18.0f + i) * 5.0f
+        };
+
+        DrawCircleV(
+            rastro,
+            RAIO_FOGO - i * 2.2f,
+            Fade(ORANGE, 0.45f - i * 0.06f)
+        );
+    }
+
+    // Brilho externo
+    DrawCircleV(
+        centro,
+        29.0f + oscilacao * 3.0f,
+        Fade(ORANGE, 0.25f)
+    );
+
+    // Chama principal
+    DrawCircleV(
+        centro,
+        RAIO_FOGO + oscilacao * 2.0f,
+        RED
+    );
+
+    DrawCircleV(
+        centro,
+        15.0f,
+        ORANGE
+    );
+
+    DrawCircleV(
+        centro,
+        9.0f,
+        YELLOW
+    );
+
+    DrawCircleV(
+        centro,
+        4.0f,
+        WHITE
+    );
+}
+
+// =====================================
+// REINICIAR LUTADORES
+// =====================================
+
+static void reiniciarLutadores(
+    Vector2 *p1,
+    Vector2 *p2,
+    EstadoAnimacaoLuna *a1,
+    EstadoAnimacaoLuna *a2,
+    float *ataque1,
+    float *ataque2,
+    float *dano1,
+    float *dano2,
+    float *vy1,
+    float *vy2,
+    bool *pulando1,
+    bool *pulando2,
+    BolaFogo *fogo1,
+    BolaFogo *fogo2
+) {
+    *p1 = (Vector2){300.0f, ALTURA_CHAO};
+    *p2 = (Vector2){660.0f, ALTURA_CHAO};
+
+    iniciarAnimacaoLuna(a1);
+    iniciarAnimacaoLuna(a2);
+
+    *ataque1 = 0.0f;
+    *ataque2 = 0.0f;
+
+    *dano1 = 0.0f;
+    *dano2 = 0.0f;
+
+    *vy1 = 0.0f;
+    *vy2 = 0.0f;
+
+    *pulando1 = false;
+    *pulando2 = false;
+
+    fogo1->ativa = false;
+    fogo2->ativa = false;
+}
+
+// =====================================
+// PREPARAR ARENA
+// =====================================
+
+static void prepararVisualPartida(Efeito **efeitos) {
+    liberarEfeitos(efeitos);
+
+    carregarArena(
+        (ArenaId)GetRandomValue(0, TOTAL_ARENAS - 1)
+    );
+
+    anunciarTexto(
+        efeitos,
+        "ROUND 1",
+        YELLOW,
+        0.0f,
+        1.1f
+    );
+
+    anunciarTexto(
+        efeitos,
+        "LUTEM!",
+        RED,
+        1.1f,
+        0.8f
+    );
+}
+
+// =====================================
+// FUNCAO PRINCIPAL
+// =====================================
 
 int main(void) {
 
-    // CONFIGURACAO DA JANELA
-    InitWindow(LARGURA_TELA, ALTURA_TELA, "Zona de Combate");
+    InitWindow(
+        LARGURA_TELA,
+        ALTURA_TELA,
+        "Zona de Combate"
+    );
 
     SetExitKey(KEY_NULL);
     SetTargetFPS(60);
 
-    // ESTADO INICIAL
+    carregarLuna();
+
     EstadoJogo estado = MENU;
 
-    // PERSONAGENS SELECIONADOS
     int personagemJogador1 = 0;
     int personagemJogador2 = 0;
 
-    // DADOS DA PARTIDA
     Partida partida = {
         .roundAtual = 1,
         .vitoriasJogador1 = 0,
         .vitoriasJogador2 = 0,
-        .vidaJogador1 = 100,
-        .vidaJogador2 = 100,
+        .vidaJogador1 = VIDA_MAXIMA,
+        .vidaJogador2 = VIDA_MAXIMA,
         .tempoRestante = 60.0f
     };
 
     int vencedorPartida = 0;
+    int vencedorRound = 0;
 
-    // ARENA E EFEITOS VISUAIS
     carregarArena(ARENA_PARQUE);
 
     Efeito *listaEfeitos = NULL;
 
-    // ENERGIA PROVISORIA
     float energiaJogador1 = 0.0f;
     float energiaJogador2 = 0.0f;
 
-    // POSICOES PROVISORIAS DOS LUTADORES
-    Vector2 posicaoJogador1 = { 300.0f, ALTURA_CHAO };
-    Vector2 posicaoJogador2 = { 660.0f, ALTURA_CHAO };
+    Vector2 posicaoJogador1 = {
+        300.0f,
+        ALTURA_CHAO
+    };
 
+    Vector2 posicaoJogador2 = {
+        660.0f,
+        ALTURA_CHAO
+    };
+
+    const float velocidadeJogador = 220.0f;
+    const float gravidade = 1200.0f;
+    const float forcaPulo = -520.0f;
+
+    bool jogador1ViradoEsquerda = false;
+    bool jogador2ViradoEsquerda = true;
+
+    EstadoAnimacaoLuna animacaoJogador1;
+    EstadoAnimacaoLuna animacaoJogador2;
+
+    iniciarAnimacaoLuna(&animacaoJogador1);
+    iniciarAnimacaoLuna(&animacaoJogador2);
+
+    float ataqueJogador1 = 0.0f;
+    float ataqueJogador2 = 0.0f;
+
+    float tempoDanoJogador1 = 0.0f;
+    float tempoDanoJogador2 = 0.0f;
+
+    float velocidadeVerticalJogador1 = 0.0f;
+    float velocidadeVerticalJogador2 = 0.0f;
+
+    bool jogador1Pulando = false;
+    bool jogador2Pulando = false;
+
+    // =====================================
+    // PROJETEIS INDEPENDENTES
+    // =====================================
+
+    BolaFogo fogoJogador1 = {0};
+    BolaFogo fogoJogador2 = {0};
+
+    // =====================================
+    // CONTROLE DO FIM DO ROUND
+    // =====================================
+
+    bool roundEncerrado = false;
+    float tempoFimRound = 0.0f;
+    float tempoAnimacaoFinal = 0.0f;
+
+    // =====================================
     // LOOP PRINCIPAL
+    // =====================================
+
     while (!WindowShouldClose()) {
 
         // =====================================
-        // SISTEMA DE PAUSA
+        // PAUSA
         // =====================================
 
         if (estado == LUTA && IsKeyPressed(KEY_P)) {
@@ -76,7 +562,7 @@ int main(void) {
         }
 
         // =====================================
-        // MENU PRINCIPAL
+        // MENU
         // =====================================
 
         if (estado == MENU) {
@@ -99,12 +585,11 @@ int main(void) {
         }
 
         // =====================================
-        // SELECAO DE PERSONAGENS
+        // SELECAO
         // =====================================
 
         else if (estado == SELECAO) {
 
-            // JOGADOR 1
             if (personagemJogador1 == 0) {
 
                 if (IsKeyPressed(KEY_ONE)) {
@@ -121,7 +606,6 @@ int main(void) {
                 }
             }
 
-            // JOGADOR 2
             if (personagemJogador2 == 0) {
 
                 if (IsKeyPressed(KEY_Q)) {
@@ -138,17 +622,47 @@ int main(void) {
                 }
             }
 
-            // INICIAR A PARTIDA
-            if (personagemJogador1 != 0 &&
+            // =====================================
+            // INICIAR PARTIDA
+            // =====================================
+
+            if (
+                personagemJogador1 != 0 &&
                 personagemJogador2 != 0 &&
-                IsKeyPressed(KEY_ENTER)) {
+                IsKeyPressed(KEY_ENTER)
+            ) {
 
                 iniciarPartida(&partida);
 
                 vencedorPartida = 0;
+                vencedorRound = 0;
+
+                roundEncerrado = false;
+                tempoFimRound = 0.0f;
+                tempoAnimacaoFinal = 0.0f;
 
                 energiaJogador1 = 0.0f;
                 energiaJogador2 = 0.0f;
+
+                reiniciarLutadores(
+                    &posicaoJogador1,
+                    &posicaoJogador2,
+                    &animacaoJogador1,
+                    &animacaoJogador2,
+                    &ataqueJogador1,
+                    &ataqueJogador2,
+                    &tempoDanoJogador1,
+                    &tempoDanoJogador2,
+                    &velocidadeVerticalJogador1,
+                    &velocidadeVerticalJogador2,
+                    &jogador1Pulando,
+                    &jogador2Pulando,
+                    &fogoJogador1,
+                    &fogoJogador2
+                );
+
+                jogador1ViradoEsquerda = false;
+                jogador2ViradoEsquerda = true;
 
                 prepararVisualPartida(&listaEfeitos);
 
@@ -157,260 +671,877 @@ int main(void) {
         }
 
         // =====================================
-        // SISTEMA DE LUTA
+        // LUTA
         // =====================================
 
         else if (estado == LUTA) {
 
             float dt = GetFrameTime();
 
-            // ATUALIZAR O CRONOMETRO
-            if (partida.tempoRestante > 0.0f) {
-
-                partida.tempoRestante -= dt;
-
-                if (partida.tempoRestante < 0.0f) {
-                    partida.tempoRestante = 0.0f;
-                }
+            if (dt > 0.05f) {
+                dt = 0.05f;
             }
 
-            // DANO PROVISORIO NO JOGADOR 1
-            if (IsKeyPressed(KEY_A) &&
-                partida.vidaJogador1 > 0) {
+            // =====================================
+            // ANIMACOES DE FIM DE ROUND
+            // =====================================
 
-                partida.vidaJogador1 -= 10;
+            if (roundEncerrado) {
 
-                efeitoImpacto(
-                    &listaEfeitos,
-                    (Vector2){
-                        posicaoJogador1.x,
-                        posicaoJogador1.y - 70.0f
+                tempoFimRound -= dt;
+                tempoAnimacaoFinal += dt;
+
+                // Os sprites possuem 6 frames.
+                // Apos completar a animacao, fixa
+                // o ultimo quadro da derrota.
+                if (personagemJogador1 == 2) {
+
+                    if (
+                        animacaoJogador1.animacao ==
+                        LUNA_DERROTADA &&
+                        tempoAnimacaoFinal >= 0.75f
+                    ) {
+                        animacaoJogador1.frameAtual = 5;
+                        animacaoJogador1.tempoAnimacao = 0.0f;
                     }
-                );
-
-                energiaJogador2 += 20.0f;
-            }
-
-            // DANO PROVISORIO NO JOGADOR 2
-            if (IsKeyPressed(KEY_L) &&
-                partida.vidaJogador2 > 0) {
-
-                partida.vidaJogador2 -= 10;
-
-                efeitoImpacto(
-                    &listaEfeitos,
-                    (Vector2){
-                        posicaoJogador2.x,
-                        posicaoJogador2.y - 70.0f
+                    else {
+                        atualizarAnimacaoLunaJogador(
+                            &animacaoJogador1,
+                            dt
+                        );
                     }
-                );
+                }
 
-                energiaJogador1 += 20.0f;
-            }
+                if (personagemJogador2 == 2) {
 
-            if (energiaJogador1 > 100.0f) {
-                energiaJogador1 = 100.0f;
-            }
+                    if (
+                        animacaoJogador2.animacao ==
+                        LUNA_DERROTADA &&
+                        tempoAnimacaoFinal >= 0.75f
+                    ) {
+                        animacaoJogador2.frameAtual = 5;
+                        animacaoJogador2.tempoAnimacao = 0.0f;
+                    }
+                    else {
+                        atualizarAnimacaoLunaJogador(
+                            &animacaoJogador2,
+                            dt
+                        );
+                    }
+                }
 
-            if (energiaJogador2 > 100.0f) {
-                energiaJogador2 = 100.0f;
-            }
+                atualizarEfeitos(&listaEfeitos, dt);
 
-            // TESTE PROVISORIO DOS ESPECIAIS
-            Vector2 maoJogador1 = {
-                posicaoJogador1.x + 30.0f,
-                posicaoJogador1.y - 70.0f
-            };
+                if (tempoFimRound <= 0.0f) {
 
-            if (IsKeyPressed(KEY_ONE)) {
+                    if (vencedorRound == 1) {
+                        partida.vitoriasJogador1++;
+                    }
+                    else if (vencedorRound == 2) {
+                        partida.vitoriasJogador2++;
+                    }
 
-                efeitoEspecial(
-                    &listaEfeitos,
-                    EFEITO_RAIO,
-                    maoJogador1,
-                    1
-                );
-            }
-            else if (IsKeyPressed(KEY_TWO)) {
+                    if (partida.vitoriasJogador1 >= 2) {
 
-                efeitoEspecial(
-                    &listaEfeitos,
-                    EFEITO_FOGO,
-                    maoJogador1,
-                    1
-                );
-            }
-            else if (IsKeyPressed(KEY_THREE)) {
+                        vencedorPartida = 1;
 
-                efeitoEspecial(
-                    &listaEfeitos,
-                    EFEITO_AGUA,
-                    maoJogador1,
-                    1
-                );
-            }
-            else if (IsKeyPressed(KEY_FOUR)) {
+                        salvarVitoria(personagemJogador1);
 
-                efeitoEspecial(
-                    &listaEfeitos,
-                    EFEITO_VENTO,
-                    maoJogador1,
-                    1
-                );
+                        liberarEfeitos(&listaEfeitos);
+
+                        estado = VITORIA;
+                    }
+                    else if (partida.vitoriasJogador2 >= 2) {
+
+                        vencedorPartida = 2;
+
+                        salvarVitoria(personagemJogador2);
+
+                        liberarEfeitos(&listaEfeitos);
+
+                        estado = VITORIA;
+                    }
+                    else {
+
+                        reiniciarRound(&partida);
+
+                        reiniciarLutadores(
+                            &posicaoJogador1,
+                            &posicaoJogador2,
+                            &animacaoJogador1,
+                            &animacaoJogador2,
+                            &ataqueJogador1,
+                            &ataqueJogador2,
+                            &tempoDanoJogador1,
+                            &tempoDanoJogador2,
+                            &velocidadeVerticalJogador1,
+                            &velocidadeVerticalJogador2,
+                            &jogador1Pulando,
+                            &jogador2Pulando,
+                            &fogoJogador1,
+                            &fogoJogador2
+                        );
+
+                        jogador1ViradoEsquerda = false;
+                        jogador2ViradoEsquerda = true;
+
+                        roundEncerrado = false;
+                        vencedorRound = 0;
+
+                        tempoAnimacaoFinal = 0.0f;
+
+                        liberarEfeitos(&listaEfeitos);
+
+                        anunciarTexto(
+                            &listaEfeitos,
+                            TextFormat(
+                                "ROUND %d",
+                                partida.roundAtual
+                            ),
+                            YELLOW,
+                            0.0f,
+                            1.1f
+                        );
+
+                        anunciarTexto(
+                            &listaEfeitos,
+                            "LUTEM!",
+                            RED,
+                            1.1f,
+                            0.8f
+                        );
+                    }
+                }
             }
 
             // =====================================
-            // VERIFICAR FIM DO ROUND
+            // ROUND EM ANDAMENTO
             // =====================================
 
-            int roundFinalizado = 0;
-            int fimPorTempo = 0;
+            else {
 
-            // JOGADOR 1 PERDEU TODA A VIDA
-            if (partida.vidaJogador1 <= 0) {
+                bool andando1 = false;
+                bool andando2 = false;
 
-                partida.vitoriasJogador2++;
-                roundFinalizado = 1;
-            }
+                atualizarTempo(&ataqueJogador1, dt);
+                atualizarTempo(&ataqueJogador2, dt);
 
-            // JOGADOR 2 PERDEU TODA A VIDA
-            else if (partida.vidaJogador2 <= 0) {
+                atualizarTempo(&tempoDanoJogador1, dt);
+                atualizarTempo(&tempoDanoJogador2, dt);
 
-                partida.vitoriasJogador1++;
-                roundFinalizado = 1;
-            }
+                // =====================================
+                // PULOS
+                // =====================================
 
-            // TEMPO ESGOTADO
-            else if (partida.tempoRestante <= 0.0f) {
-
-                if (partida.vidaJogador1 >
-                    partida.vidaJogador2) {
-
-                    partida.vitoriasJogador1++;
-                }
-                else if (partida.vidaJogador2 >
-                         partida.vidaJogador1) {
-
-                    partida.vitoriasJogador2++;
+                if (
+                    IsKeyPressed(KEY_W) &&
+                    !jogador1Pulando &&
+                    ataqueJogador1 <= 0.0f &&
+                    tempoDanoJogador1 <= 0.0f
+                ) {
+                    jogador1Pulando = true;
+                    velocidadeVerticalJogador1 = forcaPulo;
                 }
 
-                // EMPATE: NINGUEM PONTUA
-                roundFinalizado = 1;
-                fimPorTempo = 1;
-            }
+                if (
+                    IsKeyPressed(KEY_UP) &&
+                    !jogador2Pulando &&
+                    ataqueJogador2 <= 0.0f &&
+                    tempoDanoJogador2 <= 0.0f
+                ) {
+                    jogador2Pulando = true;
+                    velocidadeVerticalJogador2 = forcaPulo;
+                }
 
-            // ANUNCIO DO FIM DO ROUND
-            if (roundFinalizado == 1) {
+                // =====================================
+                // GRAVIDADE
+                // =====================================
 
-                if (fimPorTempo == 1) {
+                if (jogador1Pulando) {
 
-                    anunciarTexto(
-                        &listaEfeitos,
-                        "TEMPO ESGOTADO",
-                        ORANGE,
-                        0.0f,
-                        1.3f
+                    velocidadeVerticalJogador1 += gravidade * dt;
+
+                    posicaoJogador1.y +=
+                        velocidadeVerticalJogador1 * dt;
+
+                    if (posicaoJogador1.y >= ALTURA_CHAO) {
+
+                        posicaoJogador1.y = ALTURA_CHAO;
+                        velocidadeVerticalJogador1 = 0.0f;
+                        jogador1Pulando = false;
+                    }
+                }
+
+                if (jogador2Pulando) {
+
+                    velocidadeVerticalJogador2 += gravidade * dt;
+
+                    posicaoJogador2.y +=
+                        velocidadeVerticalJogador2 * dt;
+
+                    if (posicaoJogador2.y >= ALTURA_CHAO) {
+
+                        posicaoJogador2.y = ALTURA_CHAO;
+                        velocidadeVerticalJogador2 = 0.0f;
+                        jogador2Pulando = false;
+                    }
+                }
+
+                // =====================================
+                // AGACHAMENTO
+                // =====================================
+
+                bool agachando1 =
+                    personagemJogador1 == 2 &&
+                    IsKeyDown(KEY_C) &&
+                    !jogador1Pulando;
+
+                bool agachando2 =
+                    personagemJogador2 == 2 &&
+                    IsKeyDown(KEY_RIGHT_SHIFT) &&
+                    !jogador2Pulando;
+
+                // =====================================
+                // MOVIMENTACAO
+                // =====================================
+
+                if (
+                    ataqueJogador1 <= 0.0f &&
+                    tempoDanoJogador1 <= 0.0f &&
+                    !agachando1
+                ) {
+
+                    if (IsKeyDown(KEY_A)) {
+                        posicaoJogador1.x -= velocidadeJogador * dt;
+                        andando1 = true;
+                    }
+
+                    if (IsKeyDown(KEY_D)) {
+                        posicaoJogador1.x += velocidadeJogador * dt;
+                        andando1 = true;
+                    }
+                }
+
+                if (
+                    ataqueJogador2 <= 0.0f &&
+                    tempoDanoJogador2 <= 0.0f &&
+                    !agachando2
+                ) {
+
+                    if (IsKeyDown(KEY_LEFT)) {
+                        posicaoJogador2.x -= velocidadeJogador * dt;
+                        andando2 = true;
+                    }
+
+                    if (IsKeyDown(KEY_RIGHT)) {
+                        posicaoJogador2.x += velocidadeJogador * dt;
+                        andando2 = true;
+                    }
+                }
+
+                // =====================================
+                // LIMITES DA ARENA
+                // =====================================
+
+                if (posicaoJogador1.x < 65.0f) {
+                    posicaoJogador1.x = 65.0f;
+                }
+
+                if (posicaoJogador1.x > LARGURA_TELA - 65.0f) {
+                    posicaoJogador1.x = LARGURA_TELA - 65.0f;
+                }
+
+                if (posicaoJogador2.x < 65.0f) {
+                    posicaoJogador2.x = 65.0f;
+                }
+
+                if (posicaoJogador2.x > LARGURA_TELA - 65.0f) {
+                    posicaoJogador2.x = LARGURA_TELA - 65.0f;
+                }
+
+                impedirSobreposicao(
+                    &posicaoJogador1,
+                    &posicaoJogador2
+                );
+
+                // =====================================
+                // DIRECAO AUTOMATICA
+                // =====================================
+
+                jogador1ViradoEsquerda =
+                    posicaoJogador2.x < posicaoJogador1.x;
+
+                jogador2ViradoEsquerda =
+                    posicaoJogador1.x < posicaoJogador2.x;
+
+                // =====================================
+                // DEFESA
+                // =====================================
+
+                bool defendendo1 =
+                    personagemJogador1 == 2 &&
+                    IsKeyDown(KEY_S) &&
+                    !jogador1Pulando &&
+                    ataqueJogador1 <= 0.0f &&
+                    tempoDanoJogador1 <= 0.0f;
+
+                bool defendendo2 =
+                    personagemJogador2 == 2 &&
+                    IsKeyDown(KEY_DOWN) &&
+                    !jogador2Pulando &&
+                    ataqueJogador2 <= 0.0f &&
+                    tempoDanoJogador2 <= 0.0f;
+
+                // =====================================
+                // LUNA - JOGADOR 1
+                // =====================================
+
+                if (personagemJogador1 == 2) {
+
+                    if (tempoDanoJogador1 > 0.0f) {
+
+                        definirAnimacaoLunaJogador(
+                            &animacaoJogador1,
+                            LUNA_DANO
+                        );
+                    }
+                    else if (jogador1Pulando) {
+
+                        definirAnimacaoLunaJogador(
+                            &animacaoJogador1,
+                            LUNA_PULANDO
+                        );
+                    }
+                    else if (defendendo1) {
+
+                        definirAnimacaoLunaJogador(
+                            &animacaoJogador1,
+                            LUNA_DEFENDENDO
+                        );
+                    }
+                    else if (agachando1) {
+
+                        definirAnimacaoLunaJogador(
+                            &animacaoJogador1,
+                            LUNA_AGACHANDO
+                        );
+                    }
+                    else if (ataqueJogador1 > 0.0f) {
+
+                        // Aguarda terminar a animacao.
+                    }
+                    else if (IsKeyPressed(KEY_F)) {
+
+                        definirAnimacaoLunaJogador(
+                            &animacaoJogador1,
+                            LUNA_SOCANDO
+                        );
+
+                        ataqueJogador1 = TEMPO_SOCO;
+
+                        bool acertou = executarGolpe(
+                            posicaoJogador1,
+                            posicaoJogador2,
+                            jogador1ViradoEsquerda,
+                            ALCANCE_SOCO,
+                            DANO_SOCO,
+                            defendendo2,
+                            &partida.vidaJogador2,
+                            &energiaJogador1,
+                            &tempoDanoJogador2,
+                            &listaEfeitos
+                        );
+
+                        if (acertou && !defendendo2) {
+                            ataqueJogador2 = 0.0f;
+                        }
+                    }
+                    else if (IsKeyPressed(KEY_G)) {
+
+                        definirAnimacaoLunaJogador(
+                            &animacaoJogador1,
+                            LUNA_CHUTANDO
+                        );
+
+                        ataqueJogador1 = TEMPO_CHUTE;
+
+                        bool acertou = executarGolpe(
+                            posicaoJogador1,
+                            posicaoJogador2,
+                            jogador1ViradoEsquerda,
+                            ALCANCE_CHUTE,
+                            DANO_CHUTE,
+                            defendendo2,
+                            &partida.vidaJogador2,
+                            &energiaJogador1,
+                            &tempoDanoJogador2,
+                            &listaEfeitos
+                        );
+
+                        if (acertou && !defendendo2) {
+                            ataqueJogador2 = 0.0f;
+                        }
+                    }
+
+                    // =====================================
+                    // BOLA DE FOGO - JOGADOR 1
+                    // =====================================
+
+                    else if (
+                        IsKeyPressed(KEY_E) &&
+                        energiaJogador1 >= CUSTO_FOGO &&
+                        !fogoJogador1.ativa
+                    ) {
+
+                        energiaJogador1 -= CUSTO_FOGO;
+
+                        definirAnimacaoLunaJogador(
+                            &animacaoJogador1,
+                            LUNA_ESPECIAL
+                        );
+
+                        ataqueJogador1 = TEMPO_ESPECIAL;
+
+                        criarBolaFogo(
+                            &fogoJogador1,
+                            posicaoJogador1,
+                            jogador1ViradoEsquerda,
+                            1
+                        );
+                    }
+                    else if (andando1) {
+
+                        definirAnimacaoLunaJogador(
+                            &animacaoJogador1,
+                            LUNA_CAMINHANDO
+                        );
+                    }
+                    else {
+
+                        definirAnimacaoLunaJogador(
+                            &animacaoJogador1,
+                            LUNA_PARADA
+                        );
+                    }
+
+                    atualizarAnimacaoLunaJogador(
+                        &animacaoJogador1,
+                        dt
                     );
                 }
-                else {
 
-                    anunciarTexto(
-                        &listaEfeitos,
-                        "K.O.",
-                        RED,
-                        0.0f,
-                        1.3f
-                    );
+                // =====================================
+                // LUNA - JOGADOR 2
+                // =====================================
 
-                    efeitoFlash(
-                        &listaEfeitos,
-                        WHITE,
-                        0.25f
+                if (personagemJogador2 == 2) {
+
+                    if (tempoDanoJogador2 > 0.0f) {
+
+                        definirAnimacaoLunaJogador(
+                            &animacaoJogador2,
+                            LUNA_DANO
+                        );
+                    }
+                    else if (jogador2Pulando) {
+
+                        definirAnimacaoLunaJogador(
+                            &animacaoJogador2,
+                            LUNA_PULANDO
+                        );
+                    }
+                    else if (defendendo2) {
+
+                        definirAnimacaoLunaJogador(
+                            &animacaoJogador2,
+                            LUNA_DEFENDENDO
+                        );
+                    }
+                    else if (agachando2) {
+
+                        definirAnimacaoLunaJogador(
+                            &animacaoJogador2,
+                            LUNA_AGACHANDO
+                        );
+                    }
+                    else if (ataqueJogador2 > 0.0f) {
+
+                        // Aguarda terminar a animacao.
+                    }
+                    else if (IsKeyPressed(KEY_K)) {
+
+                        definirAnimacaoLunaJogador(
+                            &animacaoJogador2,
+                            LUNA_SOCANDO
+                        );
+
+                        ataqueJogador2 = TEMPO_SOCO;
+
+                        bool acertou = executarGolpe(
+                            posicaoJogador2,
+                            posicaoJogador1,
+                            jogador2ViradoEsquerda,
+                            ALCANCE_SOCO,
+                            DANO_SOCO,
+                            defendendo1,
+                            &partida.vidaJogador1,
+                            &energiaJogador2,
+                            &tempoDanoJogador1,
+                            &listaEfeitos
+                        );
+
+                        if (acertou && !defendendo1) {
+                            ataqueJogador1 = 0.0f;
+                        }
+                    }
+                    else if (IsKeyPressed(KEY_L)) {
+
+                        definirAnimacaoLunaJogador(
+                            &animacaoJogador2,
+                            LUNA_CHUTANDO
+                        );
+
+                        ataqueJogador2 = TEMPO_CHUTE;
+
+                        bool acertou = executarGolpe(
+                            posicaoJogador2,
+                            posicaoJogador1,
+                            jogador2ViradoEsquerda,
+                            ALCANCE_CHUTE,
+                            DANO_CHUTE,
+                            defendendo1,
+                            &partida.vidaJogador1,
+                            &energiaJogador2,
+                            &tempoDanoJogador1,
+                            &listaEfeitos
+                        );
+
+                        if (acertou && !defendendo1) {
+                            ataqueJogador1 = 0.0f;
+                        }
+                    }
+
+                    // =====================================
+                    // BOLA DE FOGO - JOGADOR 2
+                    // =====================================
+
+                    else if (
+                        IsKeyPressed(KEY_O) &&
+                        energiaJogador2 >= CUSTO_FOGO &&
+                        !fogoJogador2.ativa
+                    ) {
+
+                        energiaJogador2 -= CUSTO_FOGO;
+
+                        definirAnimacaoLunaJogador(
+                            &animacaoJogador2,
+                            LUNA_ESPECIAL
+                        );
+
+                        ataqueJogador2 = TEMPO_ESPECIAL;
+
+                        criarBolaFogo(
+                            &fogoJogador2,
+                            posicaoJogador2,
+                            jogador2ViradoEsquerda,
+                            2
+                        );
+                    }
+                    else if (andando2) {
+
+                        definirAnimacaoLunaJogador(
+                            &animacaoJogador2,
+                            LUNA_CAMINHANDO
+                        );
+                    }
+                    else {
+
+                        definirAnimacaoLunaJogador(
+                            &animacaoJogador2,
+                            LUNA_PARADA
+                        );
+                    }
+
+                    atualizarAnimacaoLunaJogador(
+                        &animacaoJogador2,
+                        dt
                     );
                 }
-            }
 
-            // =====================================
-            // VERIFICAR VENCEDOR DA PARTIDA
-            // =====================================
+                // =====================================
+                // ATUALIZAR AS BOLAS DE FOGO
+                // =====================================
 
-            // JOGADOR 1 VENCEU DOIS ROUNDS
-            if (partida.vitoriasJogador1 >= 2) {
-
-                vencedorPartida = 1;
-
-                salvarVitoria(personagemJogador1);
-
-                liberarEfeitos(&listaEfeitos);
-
-                estado = VITORIA;
-            }
-
-            // JOGADOR 2 VENCEU DOIS ROUNDS
-            else if (partida.vitoriasJogador2 >= 2) {
-
-                vencedorPartida = 2;
-
-                salvarVitoria(personagemJogador2);
-
-                liberarEfeitos(&listaEfeitos);
-
-                estado = VITORIA;
-            }
-
-            // PROXIMO ROUND
-            else if (roundFinalizado == 1) {
-
-                reiniciarRound(&partida);
-
-                anunciarTexto(
+                atualizarBolaFogo(
+                    &fogoJogador1,
+                    posicaoJogador2,
+                    defendendo2,
+                    &partida.vidaJogador2,
+                    &tempoDanoJogador2,
+                    &ataqueJogador2,
                     &listaEfeitos,
-                    TextFormat("ROUND %d", partida.roundAtual),
-                    YELLOW,
-                    1.3f,
-                    1.1f
+                    dt
                 );
 
-                anunciarTexto(
+                atualizarBolaFogo(
+                    &fogoJogador2,
+                    posicaoJogador1,
+                    defendendo1,
+                    &partida.vidaJogador1,
+                    &tempoDanoJogador1,
+                    &ataqueJogador1,
                     &listaEfeitos,
-                    "LUTEM!",
-                    RED,
-                    2.4f,
-                    0.8f
+                    dt
                 );
-            }
 
-            // ANIMACOES DO HUD E DOS EFEITOS
-            atualizarHUD(&partida, dt);
-            atualizarEfeitos(&listaEfeitos, dt);
+                // =====================================
+                // CRONOMETRO
+                // =====================================
+
+                if (partida.tempoRestante > 0.0f) {
+
+                    partida.tempoRestante -= dt;
+
+                    if (partida.tempoRestante < 0.0f) {
+                        partida.tempoRestante = 0.0f;
+                    }
+                }
+
+                // =====================================
+                // EFEITOS PROVISORIOS
+                // =====================================
+
+                Vector2 origemEfeito = {
+                    posicaoJogador1.x +
+                        (jogador1ViradoEsquerda
+                            ? -30.0f : 30.0f),
+                    posicaoJogador1.y - 70.0f
+                };
+
+                int direcao =
+                    jogador1ViradoEsquerda ? -1 : 1;
+
+                if (IsKeyPressed(KEY_ONE)) {
+
+                    efeitoEspecial(
+                        &listaEfeitos,
+                        EFEITO_RAIO,
+                        origemEfeito,
+                        direcao
+                    );
+                }
+                else if (IsKeyPressed(KEY_TWO)) {
+
+                    efeitoEspecial(
+                        &listaEfeitos,
+                        EFEITO_FOGO,
+                        origemEfeito,
+                        direcao
+                    );
+                }
+                else if (IsKeyPressed(KEY_THREE)) {
+
+                    efeitoEspecial(
+                        &listaEfeitos,
+                        EFEITO_AGUA,
+                        origemEfeito,
+                        direcao
+                    );
+                }
+                else if (IsKeyPressed(KEY_FOUR)) {
+
+                    efeitoEspecial(
+                        &listaEfeitos,
+                        EFEITO_VENTO,
+                        origemEfeito,
+                        direcao
+                    );
+                }
+
+                // =====================================
+                // VERIFICAR FIM DO ROUND
+                // =====================================
+
+                bool acabou = false;
+                bool acabouPorTempo = false;
+
+                if (
+                    partida.vidaJogador1 <= 0 &&
+                    partida.vidaJogador2 <= 0
+                ) {
+
+                    vencedorRound = 0;
+                    acabou = true;
+                }
+                else if (partida.vidaJogador1 <= 0) {
+
+                    vencedorRound = 2;
+                    acabou = true;
+                }
+                else if (partida.vidaJogador2 <= 0) {
+
+                    vencedorRound = 1;
+                    acabou = true;
+                }
+                else if (partida.tempoRestante <= 0.0f) {
+
+                    acabou = true;
+                    acabouPorTempo = true;
+
+                    if (
+                        partida.vidaJogador1 >
+                        partida.vidaJogador2
+                    ) {
+                        vencedorRound = 1;
+                    }
+                    else if (
+                        partida.vidaJogador2 >
+                        partida.vidaJogador1
+                    ) {
+                        vencedorRound = 2;
+                    }
+                    else {
+                        vencedorRound = 0;
+                    }
+                }
+
+                // =====================================
+                // VITORIA E DERROTA
+                // =====================================
+
+                if (acabou) {
+
+                    roundEncerrado = true;
+                    tempoFimRound = TEMPO_FIM_ROUND;
+                    tempoAnimacaoFinal = 0.0f;
+
+                    // Remove projeteis restantes
+                    fogoJogador1.ativa = false;
+                    fogoJogador2.ativa = false;
+
+                    if (acabouPorTempo) {
+
+                        anunciarTexto(
+                            &listaEfeitos,
+                            "TEMPO ESGOTADO",
+                            ORANGE,
+                            0.0f,
+                            1.2f
+                        );
+                    }
+                    else {
+
+                        anunciarTexto(
+                            &listaEfeitos,
+                            "K.O.",
+                            RED,
+                            0.0f,
+                            1.2f
+                        );
+
+                        efeitoFlash(
+                            &listaEfeitos,
+                            WHITE,
+                            0.25f
+                        );
+                    }
+
+                    // JOGADOR 1 VENCE
+                    if (vencedorRound == 1) {
+
+                        if (personagemJogador1 == 2) {
+
+                            definirAnimacaoLunaJogador(
+                                &animacaoJogador1,
+                                LUNA_VITORIA
+                            );
+                        }
+
+                        if (personagemJogador2 == 2) {
+
+                            definirAnimacaoLunaJogador(
+                                &animacaoJogador2,
+                                LUNA_DERROTADA
+                            );
+                        }
+                    }
+
+                    // JOGADOR 2 VENCE
+                    else if (vencedorRound == 2) {
+
+                        if (personagemJogador2 == 2) {
+
+                            definirAnimacaoLunaJogador(
+                                &animacaoJogador2,
+                                LUNA_VITORIA
+                            );
+                        }
+
+                        if (personagemJogador1 == 2) {
+
+                            definirAnimacaoLunaJogador(
+                                &animacaoJogador1,
+                                LUNA_DERROTADA
+                            );
+                        }
+                    }
+
+                    // EMPATE
+                    else {
+
+                        if (personagemJogador1 == 2) {
+
+                            definirAnimacaoLunaJogador(
+                                &animacaoJogador1,
+                                LUNA_PARADA
+                            );
+                        }
+
+                        if (personagemJogador2 == 2) {
+
+                            definirAnimacaoLunaJogador(
+                                &animacaoJogador2,
+                                LUNA_PARADA
+                            );
+                        }
+                    }
+                }
+
+                atualizarHUD(&partida, dt);
+                atualizarEfeitos(&listaEfeitos, dt);
+            }
         }
 
         // =====================================
         // VOLTAR AO MENU
         // =====================================
 
-        if (estado != MENU && IsKeyPressed(KEY_ESCAPE)) {
+        if (
+            estado != MENU &&
+            IsKeyPressed(KEY_ESCAPE)
+        ) {
 
             liberarEfeitos(&listaEfeitos);
+
+            fogoJogador1.ativa = false;
+            fogoJogador2.ativa = false;
+
+            roundEncerrado = false;
 
             estado = MENU;
         }
 
         // =====================================
-        // DESENHAR AS TELAS
+        // DESENHAR
         // =====================================
 
         BeginDrawing();
-
         ClearBackground(BLACK);
 
-        // MENU
         if (estado == MENU) {
 
             desenharMenu();
         }
-
-        // SELECAO
         else if (estado == SELECAO) {
 
             desenharSelecao(
@@ -418,56 +1549,91 @@ int main(void) {
                 personagemJogador2
             );
         }
+        else if (
+            estado == LUTA ||
+            estado == PAUSA
+        ) {
 
-        // =====================================
-        // TELA DE LUTA E PAUSA
-        // =====================================
-
-        else if (estado == LUTA || estado == PAUSA) {
-
-            // CENARIO
             desenharArena();
 
-            // LUTADORES PROVISORIOS
             Color cor1 = corPersonagem(personagemJogador1);
             Color cor2 = corPersonagem(personagemJogador2);
 
-            DrawRectangle(
-                (int)posicaoJogador1.x - 25,
-                (int)posicaoJogador1.y - 110,
-                50,
-                110,
-                Fade(cor1, 0.8f)
-            );
+            // =====================================
+            // JOGADOR 1
+            // =====================================
 
-            DrawRectangleLines(
-                (int)posicaoJogador1.x - 25,
-                (int)posicaoJogador1.y - 110,
-                50,
-                110,
-                BLACK
-            );
+            if (personagemJogador1 == 2) {
 
-            DrawRectangle(
-                (int)posicaoJogador2.x - 25,
-                (int)posicaoJogador2.y - 110,
-                50,
-                110,
-                Fade(cor2, 0.8f)
-            );
+                desenharLunaJogador(
+                    posicaoJogador1,
+                    jogador1ViradoEsquerda,
+                    &animacaoJogador1
+                );
+            }
+            else {
 
-            DrawRectangleLines(
-                (int)posicaoJogador2.x - 25,
-                (int)posicaoJogador2.y - 110,
-                50,
-                110,
-                BLACK
-            );
+                DrawRectangle(
+                    (int)posicaoJogador1.x - 25,
+                    (int)posicaoJogador1.y - 110,
+                    50,
+                    110,
+                    Fade(cor1, 0.8f)
+                );
 
-            // EFEITOS VISUAIS
+                DrawRectangleLines(
+                    (int)posicaoJogador1.x - 25,
+                    (int)posicaoJogador1.y - 110,
+                    50,
+                    110,
+                    BLACK
+                );
+            }
+
+            // =====================================
+            // JOGADOR 2
+            // =====================================
+
+            if (personagemJogador2 == 2) {
+
+                desenharLunaJogador(
+                    posicaoJogador2,
+                    jogador2ViradoEsquerda,
+                    &animacaoJogador2
+                );
+            }
+            else {
+
+                DrawRectangle(
+                    (int)posicaoJogador2.x - 25,
+                    (int)posicaoJogador2.y - 110,
+                    50,
+                    110,
+                    Fade(cor2, 0.8f)
+                );
+
+                DrawRectangleLines(
+                    (int)posicaoJogador2.x - 25,
+                    (int)posicaoJogador2.y - 110,
+                    50,
+                    110,
+                    BLACK
+                );
+            }
+
+            // =====================================
+            // DESENHAR PROJETEIS
+            // =====================================
+
+            desenharBolaFogo(&fogoJogador1);
+            desenharBolaFogo(&fogoJogador2);
+
+            // =====================================
+            // EFEITOS E HUD
+            // =====================================
+
             desenharEfeitos(listaEfeitos);
 
-            // HUD
             desenharHUD(
                 &partida,
                 personagemJogador1,
@@ -476,22 +1642,20 @@ int main(void) {
                 energiaJogador2
             );
 
-            // CONTROLES PROVISORIOS
             DrawText(
-                "A/L - DANO NO J1/J2   1-4 - ESPECIAIS   P - PAUSA   ESC - MENU",
-                130,
+                "J1: A/D W F/G S C E | J2: SETAS K/L SHIFT O | P: PAUSA",
+                32,
                 512,
-                16,
+                15,
                 Fade(WHITE, 0.85f)
             );
 
             // =====================================
-            // TELA DE PAUSA
+            // PAUSA
             // =====================================
 
             if (estado == PAUSA) {
 
-                // ESCURECER O CENARIO
                 DrawRectangle(
                     0,
                     0,
@@ -500,50 +1664,47 @@ int main(void) {
                     Fade(BLACK, 0.75f)
                 );
 
-                // TITULO CENTRALIZADO
                 const char *titulo = "JOGO PAUSADO";
-                int tamanhoTitulo = 40;
 
                 DrawText(
                     titulo,
-                    (GetScreenWidth() -
-                     MeasureText(titulo, tamanhoTitulo)) / 2,
+                    (
+                        GetScreenWidth() -
+                        MeasureText(titulo, 40)
+                    ) / 2,
                     190,
-                    tamanhoTitulo,
+                    40,
                     YELLOW
                 );
 
-                // OPCAO DE CONTINUAR
                 const char *continuar = "P - CONTINUAR";
-                int tamanhoOpcao = 25;
 
                 DrawText(
                     continuar,
-                    (GetScreenWidth() -
-                     MeasureText(continuar, tamanhoOpcao)) / 2,
+                    (
+                        GetScreenWidth() -
+                        MeasureText(continuar, 25)
+                    ) / 2,
                     290,
-                    tamanhoOpcao,
+                    25,
                     WHITE
                 );
 
-                // OPCAO DE VOLTAR AO MENU
-                const char *voltar = "ESC - VOLTAR AO MENU";
+                const char *voltar =
+                    "ESC - VOLTAR AO MENU";
 
                 DrawText(
                     voltar,
-                    (GetScreenWidth() -
-                     MeasureText(voltar, 22)) / 2,
+                    (
+                        GetScreenWidth() -
+                        MeasureText(voltar, 22)
+                    ) / 2,
                     350,
                     22,
                     LIGHTGRAY
                 );
             }
         }
-
-        // =====================================
-        // TELA DE VITORIA
-        // =====================================
-
         else if (estado == VITORIA) {
 
             desenharVitoria(
@@ -552,11 +1713,6 @@ int main(void) {
                 partida.vitoriasJogador2
             );
         }
-
-        // =====================================
-        // TELA DE RANKING
-        // =====================================
-
         else if (estado == RANKING) {
 
             desenharRanking();
@@ -565,7 +1721,12 @@ int main(void) {
         EndDrawing();
     }
 
+    // =====================================
+    // LIBERAR RECURSOS
+    // =====================================
+
     liberarEfeitos(&listaEfeitos);
+    descarregarLuna();
 
     CloseWindow();
 
