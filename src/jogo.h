@@ -7,6 +7,7 @@ typedef enum {
     MENU,
     SELECAO,
     LUTA,
+    PAUSA,
     VITORIA,
     RANKING
 } EstadoJogo;

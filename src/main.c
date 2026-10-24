@@ -1,13 +1,15 @@
+
 #include "raylib.h"
 #include "jogo.h"
 #include "cenarios.h"
 #include "interface.h"
-#include "efeitos.h"
+#include "efeito.h"
 #include <stddef.h>
 
 // =====================================
 // PREPARAR VISUAL DE UMA NOVA PARTIDA
 // =====================================
+
 static void prepararVisualPartida(Efeito **listaEfeitos) {
 
     liberarEfeitos(listaEfeitos);
@@ -51,11 +53,11 @@ int main(void) {
 
     Efeito *listaEfeitos = NULL;
 
-    // ENERGIA PROVISORIA (sera substituida pela energia dos lutadores - parte 1)
+    // ENERGIA PROVISORIA
     float energiaJogador1 = 0.0f;
     float energiaJogador2 = 0.0f;
 
-    // POSICOES PROVISORIAS DOS LUTADORES (parte 1)
+    // POSICOES PROVISORIAS DOS LUTADORES
     Vector2 posicaoJogador1 = { 300.0f, ALTURA_CHAO };
     Vector2 posicaoJogador2 = { 660.0f, ALTURA_CHAO };
 
@@ -63,8 +65,20 @@ int main(void) {
     while (!WindowShouldClose()) {
 
         // =====================================
+        // SISTEMA DE PAUSA
+        // =====================================
+
+        if (estado == LUTA && IsKeyPressed(KEY_P)) {
+            estado = PAUSA;
+        }
+        else if (estado == PAUSA && IsKeyPressed(KEY_P)) {
+            estado = LUTA;
+        }
+
+        // =====================================
         // MENU PRINCIPAL
         // =====================================
+
         if (estado == MENU) {
 
             if (IsKeyPressed(KEY_ONE)) {
@@ -87,6 +101,7 @@ int main(void) {
         // =====================================
         // SELECAO DE PERSONAGENS
         // =====================================
+
         else if (estado == SELECAO) {
 
             // JOGADOR 1
@@ -144,6 +159,7 @@ int main(void) {
         // =====================================
         // SISTEMA DE LUTA
         // =====================================
+
         else if (estado == LUTA) {
 
             float dt = GetFrameTime();
@@ -164,7 +180,13 @@ int main(void) {
 
                 partida.vidaJogador1 -= 10;
 
-                efeitoImpacto(&listaEfeitos, (Vector2){ posicaoJogador1.x, posicaoJogador1.y - 70.0f });
+                efeitoImpacto(
+                    &listaEfeitos,
+                    (Vector2){
+                        posicaoJogador1.x,
+                        posicaoJogador1.y - 70.0f
+                    }
+                );
 
                 energiaJogador2 += 20.0f;
             }
@@ -175,31 +197,72 @@ int main(void) {
 
                 partida.vidaJogador2 -= 10;
 
-                efeitoImpacto(&listaEfeitos, (Vector2){ posicaoJogador2.x, posicaoJogador2.y - 70.0f });
+                efeitoImpacto(
+                    &listaEfeitos,
+                    (Vector2){
+                        posicaoJogador2.x,
+                        posicaoJogador2.y - 70.0f
+                    }
+                );
 
                 energiaJogador1 += 20.0f;
             }
 
-            if (energiaJogador1 > 100.0f) energiaJogador1 = 100.0f;
-            if (energiaJogador2 > 100.0f) energiaJogador2 = 100.0f;
+            if (energiaJogador1 > 100.0f) {
+                energiaJogador1 = 100.0f;
+            }
 
-            // TESTE PROVISORIO DOS ESPECIAIS (J1 atacando o J2)
-            Vector2 maoJogador1 = { posicaoJogador1.x + 30.0f, posicaoJogador1.y - 70.0f };
+            if (energiaJogador2 > 100.0f) {
+                energiaJogador2 = 100.0f;
+            }
+
+            // TESTE PROVISORIO DOS ESPECIAIS
+            Vector2 maoJogador1 = {
+                posicaoJogador1.x + 30.0f,
+                posicaoJogador1.y - 70.0f
+            };
 
             if (IsKeyPressed(KEY_ONE)) {
-                efeitoEspecial(&listaEfeitos, EFEITO_RAIO, maoJogador1, 1);
+
+                efeitoEspecial(
+                    &listaEfeitos,
+                    EFEITO_RAIO,
+                    maoJogador1,
+                    1
+                );
             }
             else if (IsKeyPressed(KEY_TWO)) {
-                efeitoEspecial(&listaEfeitos, EFEITO_FOGO, maoJogador1, 1);
+
+                efeitoEspecial(
+                    &listaEfeitos,
+                    EFEITO_FOGO,
+                    maoJogador1,
+                    1
+                );
             }
             else if (IsKeyPressed(KEY_THREE)) {
-                efeitoEspecial(&listaEfeitos, EFEITO_AGUA, maoJogador1, 1);
+
+                efeitoEspecial(
+                    &listaEfeitos,
+                    EFEITO_AGUA,
+                    maoJogador1,
+                    1
+                );
             }
             else if (IsKeyPressed(KEY_FOUR)) {
-                efeitoEspecial(&listaEfeitos, EFEITO_VENTO, maoJogador1, 1);
+
+                efeitoEspecial(
+                    &listaEfeitos,
+                    EFEITO_VENTO,
+                    maoJogador1,
+                    1
+                );
             }
 
+            // =====================================
             // VERIFICAR FIM DO ROUND
+            // =====================================
+
             int roundFinalizado = 0;
             int fimPorTempo = 0;
 
@@ -207,7 +270,6 @@ int main(void) {
             if (partida.vidaJogador1 <= 0) {
 
                 partida.vitoriasJogador2++;
-
                 roundFinalizado = 1;
             }
 
@@ -215,7 +277,6 @@ int main(void) {
             else if (partida.vidaJogador2 <= 0) {
 
                 partida.vitoriasJogador1++;
-
                 roundFinalizado = 1;
             }
 
@@ -242,11 +303,30 @@ int main(void) {
             if (roundFinalizado == 1) {
 
                 if (fimPorTempo == 1) {
-                    anunciarTexto(&listaEfeitos, "TEMPO ESGOTADO", ORANGE, 0.0f, 1.3f);
+
+                    anunciarTexto(
+                        &listaEfeitos,
+                        "TEMPO ESGOTADO",
+                        ORANGE,
+                        0.0f,
+                        1.3f
+                    );
                 }
                 else {
-                    anunciarTexto(&listaEfeitos, "K.O.", RED, 0.0f, 1.3f);
-                    efeitoFlash(&listaEfeitos, WHITE, 0.25f);
+
+                    anunciarTexto(
+                        &listaEfeitos,
+                        "K.O.",
+                        RED,
+                        0.0f,
+                        1.3f
+                    );
+
+                    efeitoFlash(
+                        &listaEfeitos,
+                        WHITE,
+                        0.25f
+                    );
                 }
             }
 
@@ -286,10 +366,18 @@ int main(void) {
                 anunciarTexto(
                     &listaEfeitos,
                     TextFormat("ROUND %d", partida.roundAtual),
-                    YELLOW, 1.3f, 1.1f
+                    YELLOW,
+                    1.3f,
+                    1.1f
                 );
 
-                anunciarTexto(&listaEfeitos, "LUTEM!", RED, 2.4f, 0.8f);
+                anunciarTexto(
+                    &listaEfeitos,
+                    "LUTEM!",
+                    RED,
+                    2.4f,
+                    0.8f
+                );
             }
 
             // ANIMACOES DO HUD E DOS EFEITOS
@@ -300,6 +388,7 @@ int main(void) {
         // =====================================
         // VOLTAR AO MENU
         // =====================================
+
         if (estado != MENU && IsKeyPressed(KEY_ESCAPE)) {
 
             liberarEfeitos(&listaEfeitos);
@@ -310,6 +399,7 @@ int main(void) {
         // =====================================
         // DESENHAR AS TELAS
         // =====================================
+
         BeginDrawing();
 
         ClearBackground(BLACK);
@@ -330,22 +420,49 @@ int main(void) {
         }
 
         // =====================================
-        // TELA DE LUTA
+        // TELA DE LUTA E PAUSA
         // =====================================
-        else if (estado == LUTA) {
+
+        else if (estado == LUTA || estado == PAUSA) {
 
             // CENARIO
             desenharArena();
 
-            // LUTADORES PROVISORIOS (serao substituidos pela parte 1)
+            // LUTADORES PROVISORIOS
             Color cor1 = corPersonagem(personagemJogador1);
             Color cor2 = corPersonagem(personagemJogador2);
 
-            DrawRectangle((int)posicaoJogador1.x - 25, (int)posicaoJogador1.y - 110, 50, 110, Fade(cor1, 0.8f));
-            DrawRectangleLines((int)posicaoJogador1.x - 25, (int)posicaoJogador1.y - 110, 50, 110, BLACK);
+            DrawRectangle(
+                (int)posicaoJogador1.x - 25,
+                (int)posicaoJogador1.y - 110,
+                50,
+                110,
+                Fade(cor1, 0.8f)
+            );
 
-            DrawRectangle((int)posicaoJogador2.x - 25, (int)posicaoJogador2.y - 110, 50, 110, Fade(cor2, 0.8f));
-            DrawRectangleLines((int)posicaoJogador2.x - 25, (int)posicaoJogador2.y - 110, 50, 110, BLACK);
+            DrawRectangleLines(
+                (int)posicaoJogador1.x - 25,
+                (int)posicaoJogador1.y - 110,
+                50,
+                110,
+                BLACK
+            );
+
+            DrawRectangle(
+                (int)posicaoJogador2.x - 25,
+                (int)posicaoJogador2.y - 110,
+                50,
+                110,
+                Fade(cor2, 0.8f)
+            );
+
+            DrawRectangleLines(
+                (int)posicaoJogador2.x - 25,
+                (int)posicaoJogador2.y - 110,
+                50,
+                110,
+                BLACK
+            );
 
             // EFEITOS VISUAIS
             desenharEfeitos(listaEfeitos);
@@ -361,14 +478,72 @@ int main(void) {
 
             // CONTROLES PROVISORIOS
             DrawText(
-                "A/L - DANO NO J1/J2   1-4 - TESTAR ESPECIAIS   ESC - MENU",
-                170, 512, 18, Fade(WHITE, 0.85f)
+                "A/L - DANO NO J1/J2   1-4 - ESPECIAIS   P - PAUSA   ESC - MENU",
+                130,
+                512,
+                16,
+                Fade(WHITE, 0.85f)
             );
+
+            // =====================================
+            // TELA DE PAUSA
+            // =====================================
+
+            if (estado == PAUSA) {
+
+                // ESCURECER O CENARIO
+                DrawRectangle(
+                    0,
+                    0,
+                    GetScreenWidth(),
+                    GetScreenHeight(),
+                    Fade(BLACK, 0.75f)
+                );
+
+                // TITULO CENTRALIZADO
+                const char *titulo = "JOGO PAUSADO";
+                int tamanhoTitulo = 40;
+
+                DrawText(
+                    titulo,
+                    (GetScreenWidth() -
+                     MeasureText(titulo, tamanhoTitulo)) / 2,
+                    190,
+                    tamanhoTitulo,
+                    YELLOW
+                );
+
+                // OPCAO DE CONTINUAR
+                const char *continuar = "P - CONTINUAR";
+                int tamanhoOpcao = 25;
+
+                DrawText(
+                    continuar,
+                    (GetScreenWidth() -
+                     MeasureText(continuar, tamanhoOpcao)) / 2,
+                    290,
+                    tamanhoOpcao,
+                    WHITE
+                );
+
+                // OPCAO DE VOLTAR AO MENU
+                const char *voltar = "ESC - VOLTAR AO MENU";
+
+                DrawText(
+                    voltar,
+                    (GetScreenWidth() -
+                     MeasureText(voltar, 22)) / 2,
+                    350,
+                    22,
+                    LIGHTGRAY
+                );
+            }
         }
 
         // =====================================
         // TELA DE VITORIA
         // =====================================
+
         else if (estado == VITORIA) {
 
             desenharVitoria(
@@ -381,6 +556,7 @@ int main(void) {
         // =====================================
         // TELA DE RANKING
         // =====================================
+
         else if (estado == RANKING) {
 
             desenharRanking();
