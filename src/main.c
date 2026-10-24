@@ -1,11 +1,28 @@
-
 #include "raylib.h"
 #include "jogo.h"
+#include "cenarios.h"
+#include "interface.h"
+#include "efeitos.h"
+#include <stddef.h>
+
+// =====================================
+// PREPARAR VISUAL DE UMA NOVA PARTIDA
+// =====================================
+static void prepararVisualPartida(Efeito **listaEfeitos) {
+
+    liberarEfeitos(listaEfeitos);
+
+    // ARENA SORTEADA A CADA PARTIDA
+    carregarArena((ArenaId)GetRandomValue(0, TOTAL_ARENAS - 1));
+
+    anunciarTexto(listaEfeitos, "ROUND 1", YELLOW, 0.0f, 1.1f);
+    anunciarTexto(listaEfeitos, "LUTEM!", RED, 1.1f, 0.8f);
+}
 
 int main(void) {
 
     // CONFIGURACAO DA JANELA
-    InitWindow(960, 540, "Zona de Combate");
+    InitWindow(LARGURA_TELA, ALTURA_TELA, "Zona de Combate");
 
     SetExitKey(KEY_NULL);
     SetTargetFPS(60);
@@ -28,6 +45,19 @@ int main(void) {
     };
 
     int vencedorPartida = 0;
+
+    // ARENA E EFEITOS VISUAIS
+    carregarArena(ARENA_PARQUE);
+
+    Efeito *listaEfeitos = NULL;
+
+    // ENERGIA PROVISORIA (sera substituida pela energia dos lutadores - parte 1)
+    float energiaJogador1 = 0.0f;
+    float energiaJogador2 = 0.0f;
+
+    // POSICOES PROVISORIAS DOS LUTADORES (parte 1)
+    Vector2 posicaoJogador1 = { 300.0f, ALTURA_CHAO };
+    Vector2 posicaoJogador2 = { 660.0f, ALTURA_CHAO };
 
     // LOOP PRINCIPAL
     while (!WindowShouldClose()) {
@@ -102,6 +132,11 @@ int main(void) {
 
                 vencedorPartida = 0;
 
+                energiaJogador1 = 0.0f;
+                energiaJogador2 = 0.0f;
+
+                prepararVisualPartida(&listaEfeitos);
+
                 estado = LUTA;
             }
         }
@@ -111,10 +146,12 @@ int main(void) {
         // =====================================
         else if (estado == LUTA) {
 
+            float dt = GetFrameTime();
+
             // ATUALIZAR O CRONOMETRO
             if (partida.tempoRestante > 0.0f) {
 
-                partida.tempoRestante -= GetFrameTime();
+                partida.tempoRestante -= dt;
 
                 if (partida.tempoRestante < 0.0f) {
                     partida.tempoRestante = 0.0f;
@@ -126,6 +163,10 @@ int main(void) {
                 partida.vidaJogador1 > 0) {
 
                 partida.vidaJogador1 -= 10;
+
+                efeitoImpacto(&listaEfeitos, (Vector2){ posicaoJogador1.x, posicaoJogador1.y - 70.0f });
+
+                energiaJogador2 += 20.0f;
             }
 
             // DANO PROVISORIO NO JOGADOR 2
@@ -133,10 +174,34 @@ int main(void) {
                 partida.vidaJogador2 > 0) {
 
                 partida.vidaJogador2 -= 10;
+
+                efeitoImpacto(&listaEfeitos, (Vector2){ posicaoJogador2.x, posicaoJogador2.y - 70.0f });
+
+                energiaJogador1 += 20.0f;
+            }
+
+            if (energiaJogador1 > 100.0f) energiaJogador1 = 100.0f;
+            if (energiaJogador2 > 100.0f) energiaJogador2 = 100.0f;
+
+            // TESTE PROVISORIO DOS ESPECIAIS (J1 atacando o J2)
+            Vector2 maoJogador1 = { posicaoJogador1.x + 30.0f, posicaoJogador1.y - 70.0f };
+
+            if (IsKeyPressed(KEY_ONE)) {
+                efeitoEspecial(&listaEfeitos, EFEITO_RAIO, maoJogador1, 1);
+            }
+            else if (IsKeyPressed(KEY_TWO)) {
+                efeitoEspecial(&listaEfeitos, EFEITO_FOGO, maoJogador1, 1);
+            }
+            else if (IsKeyPressed(KEY_THREE)) {
+                efeitoEspecial(&listaEfeitos, EFEITO_AGUA, maoJogador1, 1);
+            }
+            else if (IsKeyPressed(KEY_FOUR)) {
+                efeitoEspecial(&listaEfeitos, EFEITO_VENTO, maoJogador1, 1);
             }
 
             // VERIFICAR FIM DO ROUND
             int roundFinalizado = 0;
+            int fimPorTempo = 0;
 
             // JOGADOR 1 PERDEU TODA A VIDA
             if (partida.vidaJogador1 <= 0) {
@@ -170,6 +235,19 @@ int main(void) {
 
                 // EMPATE: NINGUEM PONTUA
                 roundFinalizado = 1;
+                fimPorTempo = 1;
+            }
+
+            // ANUNCIO DO FIM DO ROUND
+            if (roundFinalizado == 1) {
+
+                if (fimPorTempo == 1) {
+                    anunciarTexto(&listaEfeitos, "TEMPO ESGOTADO", ORANGE, 0.0f, 1.3f);
+                }
+                else {
+                    anunciarTexto(&listaEfeitos, "K.O.", RED, 0.0f, 1.3f);
+                    efeitoFlash(&listaEfeitos, WHITE, 0.25f);
+                }
             }
 
             // =====================================
@@ -183,6 +261,8 @@ int main(void) {
 
                 salvarVitoria(personagemJogador1);
 
+                liberarEfeitos(&listaEfeitos);
+
                 estado = VITORIA;
             }
 
@@ -193,6 +273,8 @@ int main(void) {
 
                 salvarVitoria(personagemJogador2);
 
+                liberarEfeitos(&listaEfeitos);
+
                 estado = VITORIA;
             }
 
@@ -200,13 +282,27 @@ int main(void) {
             else if (roundFinalizado == 1) {
 
                 reiniciarRound(&partida);
+
+                anunciarTexto(
+                    &listaEfeitos,
+                    TextFormat("ROUND %d", partida.roundAtual),
+                    YELLOW, 1.3f, 1.1f
+                );
+
+                anunciarTexto(&listaEfeitos, "LUTEM!", RED, 2.4f, 0.8f);
             }
+
+            // ANIMACOES DO HUD E DOS EFEITOS
+            atualizarHUD(&partida, dt);
+            atualizarEfeitos(&listaEfeitos, dt);
         }
 
         // =====================================
         // VOLTAR AO MENU
         // =====================================
         if (estado != MENU && IsKeyPressed(KEY_ESCAPE)) {
+
+            liberarEfeitos(&listaEfeitos);
 
             estado = MENU;
         }
@@ -238,93 +334,35 @@ int main(void) {
         // =====================================
         else if (estado == LUTA) {
 
-            // CRONOMETRO
-            DrawText(
-                TextFormat(
-                    "TEMPO: %d",
-                    (int)partida.tempoRestante
-                ),
-                400, 30, 30, WHITE
-            );
+            // CENARIO
+            desenharArena();
 
-            // ROUND
-            DrawText(
-                TextFormat(
-                    "ROUND %d",
-                    partida.roundAtual
-                ),
-                400, 80, 30, YELLOW
-            );
+            // LUTADORES PROVISORIOS (serao substituidos pela parte 1)
+            Color cor1 = corPersonagem(personagemJogador1);
+            Color cor2 = corPersonagem(personagemJogador2);
 
-            // BARRA DE VIDA DO JOGADOR 1
-            DrawRectangle(
-                100, 120, 250, 25, DARKGRAY
-            );
+            DrawRectangle((int)posicaoJogador1.x - 25, (int)posicaoJogador1.y - 110, 50, 110, Fade(cor1, 0.8f));
+            DrawRectangleLines((int)posicaoJogador1.x - 25, (int)posicaoJogador1.y - 110, 50, 110, BLACK);
 
-            DrawRectangle(
-                100,
-                120,
-                partida.vidaJogador1 * 250 / 100,
-                25,
-                GREEN
-            );
+            DrawRectangle((int)posicaoJogador2.x - 25, (int)posicaoJogador2.y - 110, 50, 110, Fade(cor2, 0.8f));
+            DrawRectangleLines((int)posicaoJogador2.x - 25, (int)posicaoJogador2.y - 110, 50, 110, BLACK);
 
-            // BARRA DE VIDA DO JOGADOR 2
-            DrawRectangle(
-                610, 120, 250, 25, DARKGRAY
-            );
+            // EFEITOS VISUAIS
+            desenharEfeitos(listaEfeitos);
 
-            DrawRectangle(
-                610,
-                120,
-                partida.vidaJogador2 * 250 / 100,
-                25,
-                GREEN
-            );
-
-            // PLACAR DO JOGADOR 1
-            DrawText(
-                TextFormat(
-                    "J1: %d",
-                    partida.vitoriasJogador1
-                ),
-                100, 30, 25, WHITE
-            );
-
-            // PLACAR DO JOGADOR 2
-            DrawText(
-                TextFormat(
-                    "J2: %d",
-                    partida.vitoriasJogador2
-                ),
-                750, 30, 25, WHITE
-            );
-
-            // TITULO
-            DrawText(
-                "ZONA DE COMBATE - LUTA",
-                220, 160, 30, WHITE
-            );
-
-            DrawText(
-                "PREPARAR PARA LUTAR!",
-                270, 250, 25, YELLOW
+            // HUD
+            desenharHUD(
+                &partida,
+                personagemJogador1,
+                personagemJogador2,
+                energiaJogador1,
+                energiaJogador2
             );
 
             // CONTROLES PROVISORIOS
             DrawText(
-                "A - DANO NO J1",
-                150, 350, 22, GREEN
-            );
-
-            DrawText(
-                "L - DANO NO J2",
-                600, 350, 22, GREEN
-            );
-
-            DrawText(
-                "ESC - VOLTAR AO MENU",
-                330, 450, 20, LIGHTGRAY
+                "A/L - DANO NO J1/J2   1-4 - TESTAR ESPECIAIS   ESC - MENU",
+                170, 512, 18, Fade(WHITE, 0.85f)
             );
         }
 
@@ -350,6 +388,8 @@ int main(void) {
 
         EndDrawing();
     }
+
+    liberarEfeitos(&listaEfeitos);
 
     CloseWindow();
 
