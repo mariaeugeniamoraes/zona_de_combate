@@ -36,6 +36,23 @@
 
 #define TEMPO_FIM_ROUND 1.6f
 
+// Converte a escolha do menu para o identificador dos sprites.
+static int obterIndicePersonagem(int personagem) {
+    if (personagem == 1) {
+        return PERSONAGEM_AYRA;
+    }
+    else if (personagem == 2) {
+        return PERSONAGEM_LUNA;
+    }
+    else if (personagem == 3) {
+        return PERSONAGEM_KAI;
+    }
+    else if (personagem == 4) {
+        return PERSONAGEM_NERO;
+    }
+
+    return -1;
+}
 // =====================================
 // ESTRUTURA DA BOLA DE FOGO
 // =====================================
@@ -468,8 +485,7 @@ int main(void) {
     SetExitKey(KEY_NULL);
     SetTargetFPS(60);
 
-    carregarLuna();
-
+    carregarPersonagens();  
     EstadoJogo estado = MENU;
 
     int personagemJogador1 = 0;
@@ -694,41 +710,35 @@ int main(void) {
                 // Os sprites possuem 6 frames.
                 // Apos completar a animacao, fixa
                 // o ultimo quadro da derrota.
-                if (personagemJogador1 == 2) {
-
-                    if (
-                        animacaoJogador1.animacao ==
-                        LUNA_DERROTADA &&
-                        tempoAnimacaoFinal >= 0.75f
-                    ) {
-                        animacaoJogador1.frameAtual = 5;
-                        animacaoJogador1.tempoAnimacao = 0.0f;
-                    }
-                    else {
-                        atualizarAnimacaoLunaJogador(
-                            &animacaoJogador1,
-                            dt
-                        );
-                    }
+               
+                if (
+                    animacaoJogador1.animacao == ANIMACAO_DERROTADA &&
+                    tempoAnimacaoFinal >= 0.75f
+                ) {
+                    animacaoJogador1.frameAtual = 5;
+                    animacaoJogador1.tempoAnimacao = 0.0f;
+                }
+                else {
+                    atualizarAnimacaoPersonagem(
+                        &animacaoJogador1,
+                        dt
+                    );
                 }
 
-                if (personagemJogador2 == 2) {
 
-                    if (
-                        animacaoJogador2.animacao ==
-                        LUNA_DERROTADA &&
+                if (
+                        animacaoJogador2.animacao == ANIMACAO_DERROTADA &&
                         tempoAnimacaoFinal >= 0.75f
                     ) {
                         animacaoJogador2.frameAtual = 5;
                         animacaoJogador2.tempoAnimacao = 0.0f;
                     }
                     else {
-                        atualizarAnimacaoLunaJogador(
+                        atualizarAnimacaoPersonagem(
                             &animacaoJogador2,
                             dt
                         );
                     }
-                }
 
                 atualizarEfeitos(&listaEfeitos, dt);
 
@@ -892,12 +902,10 @@ int main(void) {
                 // =====================================
 
                 bool agachando1 =
-                    personagemJogador1 == 2 &&
                     IsKeyDown(KEY_C) &&
                     !jogador1Pulando;
 
                 bool agachando2 =
-                    personagemJogador2 == 2 &&
                     IsKeyDown(KEY_RIGHT_SHIFT) &&
                     !jogador2Pulando;
 
@@ -979,294 +987,276 @@ int main(void) {
                 // =====================================
 
                 bool defendendo1 =
-                    personagemJogador1 == 2 &&
                     IsKeyDown(KEY_S) &&
                     !jogador1Pulando &&
                     ataqueJogador1 <= 0.0f &&
                     tempoDanoJogador1 <= 0.0f;
 
                 bool defendendo2 =
-                    personagemJogador2 == 2 &&
                     IsKeyDown(KEY_DOWN) &&
                     !jogador2Pulando &&
                     ataqueJogador2 <= 0.0f &&
                     tempoDanoJogador2 <= 0.0f;
-
                 // =====================================
                 // LUNA - JOGADOR 1
                 // =====================================
 
-                if (personagemJogador1 == 2) {
+                                if (tempoDanoJogador1 > 0.0f) {
 
-                    if (tempoDanoJogador1 > 0.0f) {
-
-                        definirAnimacaoLunaJogador(
-                            &animacaoJogador1,
-                            LUNA_DANO
-                        );
-                    }
-                    else if (jogador1Pulando) {
-
-                        definirAnimacaoLunaJogador(
-                            &animacaoJogador1,
-                            LUNA_PULANDO
-                        );
-                    }
-                    else if (defendendo1) {
-
-                        definirAnimacaoLunaJogador(
-                            &animacaoJogador1,
-                            LUNA_DEFENDENDO
-                        );
-                    }
-                    else if (agachando1) {
-
-                        definirAnimacaoLunaJogador(
-                            &animacaoJogador1,
-                            LUNA_AGACHANDO
-                        );
-                    }
-                    else if (ataqueJogador1 > 0.0f) {
-
-                        // Aguarda terminar a animacao.
-                    }
-                    else if (IsKeyPressed(KEY_F)) {
-
-                        definirAnimacaoLunaJogador(
-                            &animacaoJogador1,
-                            LUNA_SOCANDO
-                        );
-
-                        ataqueJogador1 = TEMPO_SOCO;
-
-                        bool acertou = executarGolpe(
-                            posicaoJogador1,
-                            posicaoJogador2,
-                            jogador1ViradoEsquerda,
-                            ALCANCE_SOCO,
-                            DANO_SOCO,
-                            defendendo2,
-                            &partida.vidaJogador2,
-                            &energiaJogador1,
-                            &tempoDanoJogador2,
-                            &listaEfeitos
-                        );
-
-                        if (acertou && !defendendo2) {
-                            ataqueJogador2 = 0.0f;
-                        }
-                    }
-                    else if (IsKeyPressed(KEY_G)) {
-
-                        definirAnimacaoLunaJogador(
-                            &animacaoJogador1,
-                            LUNA_CHUTANDO
-                        );
-
-                        ataqueJogador1 = TEMPO_CHUTE;
-
-                        bool acertou = executarGolpe(
-                            posicaoJogador1,
-                            posicaoJogador2,
-                            jogador1ViradoEsquerda,
-                            ALCANCE_CHUTE,
-                            DANO_CHUTE,
-                            defendendo2,
-                            &partida.vidaJogador2,
-                            &energiaJogador1,
-                            &tempoDanoJogador2,
-                            &listaEfeitos
-                        );
-
-                        if (acertou && !defendendo2) {
-                            ataqueJogador2 = 0.0f;
-                        }
-                    }
-
-                    // =====================================
-                    // BOLA DE FOGO - JOGADOR 1
-                    // =====================================
-
-                    else if (
-                        IsKeyPressed(KEY_E) &&
-                        energiaJogador1 >= CUSTO_FOGO &&
-                        !fogoJogador1.ativa
-                    ) {
-
-                        energiaJogador1 -= CUSTO_FOGO;
-
-                        definirAnimacaoLunaJogador(
-                            &animacaoJogador1,
-                            LUNA_ESPECIAL
-                        );
-
-                        ataqueJogador1 = TEMPO_ESPECIAL;
-
-                        criarBolaFogo(
-                            &fogoJogador1,
-                            posicaoJogador1,
-                            jogador1ViradoEsquerda,
-                            1
-                        );
-                    }
-                    else if (andando1) {
-
-                        definirAnimacaoLunaJogador(
-                            &animacaoJogador1,
-                            LUNA_CAMINHANDO
-                        );
-                    }
-                    else {
-
-                        definirAnimacaoLunaJogador(
-                            &animacaoJogador1,
-                            LUNA_PARADA
-                        );
-                    }
-
-                    atualizarAnimacaoLunaJogador(
+                    definirAnimacaoPersonagem(
                         &animacaoJogador1,
-                        dt
+                        ANIMACAO_DANO
+                    );
+                }
+                else if (jogador1Pulando) {
+
+                    definirAnimacaoPersonagem(
+                        &animacaoJogador1,
+                        ANIMACAO_PULANDO
+                    );
+                }
+                else if (defendendo1) {
+
+                    definirAnimacaoPersonagem(
+                        &animacaoJogador1,
+                        ANIMACAO_DEFENDENDO
+                    );
+                }
+                else if (agachando1) {
+
+                    definirAnimacaoPersonagem(
+                        &animacaoJogador1,
+                        ANIMACAO_AGACHANDO
+                    );
+                }
+                else if (ataqueJogador1 > 0.0f) {
+
+                    // Aguarda terminar a animacao.
+                }
+                else if (IsKeyPressed(KEY_F)) {
+
+                    definirAnimacaoPersonagem(
+                        &animacaoJogador1,
+                        ANIMACAO_SOCANDO
+                    );
+
+                    ataqueJogador1 = TEMPO_SOCO;
+
+                    bool acertou = executarGolpe(
+                        posicaoJogador1,
+                        posicaoJogador2,
+                        jogador1ViradoEsquerda,
+                        ALCANCE_SOCO,
+                        DANO_SOCO,
+                        defendendo2,
+                        &partida.vidaJogador2,
+                        &energiaJogador1,
+                        &tempoDanoJogador2,
+                        &listaEfeitos
+                    );
+
+                    if (acertou && !defendendo2) {
+                        ataqueJogador2 = 0.0f;
+                    }
+                }
+                else if (IsKeyPressed(KEY_G)) {
+
+                    definirAnimacaoPersonagem(
+                        &animacaoJogador1,
+                        ANIMACAO_CHUTANDO
+                    );
+
+                    ataqueJogador1 = TEMPO_CHUTE;
+
+                    bool acertou = executarGolpe(
+                        posicaoJogador1,
+                        posicaoJogador2,
+                        jogador1ViradoEsquerda,
+                        ALCANCE_CHUTE,
+                        DANO_CHUTE,
+                        defendendo2,
+                        &partida.vidaJogador2,
+                        &energiaJogador1,
+                        &tempoDanoJogador2,
+                        &listaEfeitos
+                    );
+
+                    if (acertou && !defendendo2) {
+                        ataqueJogador2 = 0.0f;
+                    }
+                }
+                else if (
+                    IsKeyPressed(KEY_E) &&
+                    energiaJogador1 >= CUSTO_FOGO &&
+                    !fogoJogador1.ativa
+                ) {
+
+                    energiaJogador1 -= CUSTO_FOGO;
+
+                    definirAnimacaoPersonagem(
+                        &animacaoJogador1,
+                        ANIMACAO_ESPECIAL
+                    );
+
+                    ataqueJogador1 = TEMPO_ESPECIAL;
+
+                    criarBolaFogo(
+                        &fogoJogador1,
+                        posicaoJogador1,
+                        jogador1ViradoEsquerda,
+                        1
+                    );
+                }
+                else if (andando1) {
+
+                    definirAnimacaoPersonagem(
+                        &animacaoJogador1,
+                        ANIMACAO_CAMINHANDO
+                    );
+                }
+                else {
+
+                    definirAnimacaoPersonagem(
+                        &animacaoJogador1,
+                        ANIMACAO_PARADA
                     );
                 }
 
+                atualizarAnimacaoPersonagem(
+                    &animacaoJogador1,
+                    dt
+                );
+
+
                 // =====================================
-                // LUNA - JOGADOR 2
+                // COMBATE - JOGADOR 2
                 // =====================================
 
-                if (personagemJogador2 == 2) {
+                if (tempoDanoJogador2 > 0.0f) {
 
-                    if (tempoDanoJogador2 > 0.0f) {
-
-                        definirAnimacaoLunaJogador(
-                            &animacaoJogador2,
-                            LUNA_DANO
-                        );
-                    }
-                    else if (jogador2Pulando) {
-
-                        definirAnimacaoLunaJogador(
-                            &animacaoJogador2,
-                            LUNA_PULANDO
-                        );
-                    }
-                    else if (defendendo2) {
-
-                        definirAnimacaoLunaJogador(
-                            &animacaoJogador2,
-                            LUNA_DEFENDENDO
-                        );
-                    }
-                    else if (agachando2) {
-
-                        definirAnimacaoLunaJogador(
-                            &animacaoJogador2,
-                            LUNA_AGACHANDO
-                        );
-                    }
-                    else if (ataqueJogador2 > 0.0f) {
-
-                        // Aguarda terminar a animacao.
-                    }
-                    else if (IsKeyPressed(KEY_K)) {
-
-                        definirAnimacaoLunaJogador(
-                            &animacaoJogador2,
-                            LUNA_SOCANDO
-                        );
-
-                        ataqueJogador2 = TEMPO_SOCO;
-
-                        bool acertou = executarGolpe(
-                            posicaoJogador2,
-                            posicaoJogador1,
-                            jogador2ViradoEsquerda,
-                            ALCANCE_SOCO,
-                            DANO_SOCO,
-                            defendendo1,
-                            &partida.vidaJogador1,
-                            &energiaJogador2,
-                            &tempoDanoJogador1,
-                            &listaEfeitos
-                        );
-
-                        if (acertou && !defendendo1) {
-                            ataqueJogador1 = 0.0f;
-                        }
-                    }
-                    else if (IsKeyPressed(KEY_L)) {
-
-                        definirAnimacaoLunaJogador(
-                            &animacaoJogador2,
-                            LUNA_CHUTANDO
-                        );
-
-                        ataqueJogador2 = TEMPO_CHUTE;
-
-                        bool acertou = executarGolpe(
-                            posicaoJogador2,
-                            posicaoJogador1,
-                            jogador2ViradoEsquerda,
-                            ALCANCE_CHUTE,
-                            DANO_CHUTE,
-                            defendendo1,
-                            &partida.vidaJogador1,
-                            &energiaJogador2,
-                            &tempoDanoJogador1,
-                            &listaEfeitos
-                        );
-
-                        if (acertou && !defendendo1) {
-                            ataqueJogador1 = 0.0f;
-                        }
-                    }
-
-                    // =====================================
-                    // BOLA DE FOGO - JOGADOR 2
-                    // =====================================
-
-                    else if (
-                        IsKeyPressed(KEY_O) &&
-                        energiaJogador2 >= CUSTO_FOGO &&
-                        !fogoJogador2.ativa
-                    ) {
-
-                        energiaJogador2 -= CUSTO_FOGO;
-
-                        definirAnimacaoLunaJogador(
-                            &animacaoJogador2,
-                            LUNA_ESPECIAL
-                        );
-
-                        ataqueJogador2 = TEMPO_ESPECIAL;
-
-                        criarBolaFogo(
-                            &fogoJogador2,
-                            posicaoJogador2,
-                            jogador2ViradoEsquerda,
-                            2
-                        );
-                    }
-                    else if (andando2) {
-
-                        definirAnimacaoLunaJogador(
-                            &animacaoJogador2,
-                            LUNA_CAMINHANDO
-                        );
-                    }
-                    else {
-
-                        definirAnimacaoLunaJogador(
-                            &animacaoJogador2,
-                            LUNA_PARADA
-                        );
-                    }
-
-                    atualizarAnimacaoLunaJogador(
+                    definirAnimacaoPersonagem(
                         &animacaoJogador2,
-                        dt
+                        ANIMACAO_DANO
                     );
                 }
+                else if (jogador2Pulando) {
+
+                    definirAnimacaoPersonagem(
+                        &animacaoJogador2,
+                        ANIMACAO_PULANDO
+                    );
+                }
+                else if (defendendo2) {
+
+                    definirAnimacaoPersonagem(
+                        &animacaoJogador2,
+                        ANIMACAO_DEFENDENDO
+                    );
+                }
+                else if (agachando2) {
+
+                    definirAnimacaoPersonagem(
+                        &animacaoJogador2,
+                        ANIMACAO_AGACHANDO
+                    );
+                }
+                else if (ataqueJogador2 > 0.0f) {
+
+                    // Aguarda terminar a animacao.
+                }
+                else if (IsKeyPressed(KEY_K)) {
+
+                    definirAnimacaoPersonagem(
+                        &animacaoJogador2,
+                        ANIMACAO_SOCANDO
+                    );
+
+                    ataqueJogador2 = TEMPO_SOCO;
+
+                    bool acertou = executarGolpe(
+                        posicaoJogador2,
+                        posicaoJogador1,
+                        jogador2ViradoEsquerda,
+                        ALCANCE_SOCO,
+                        DANO_SOCO,
+                        defendendo1,
+                        &partida.vidaJogador1,
+                        &energiaJogador2,
+                        &tempoDanoJogador1,
+                        &listaEfeitos
+                    );
+
+                    if (acertou && !defendendo1) {
+                        ataqueJogador1 = 0.0f;
+                    }
+                }
+                else if (IsKeyPressed(KEY_L)) {
+
+                    definirAnimacaoPersonagem(
+                        &animacaoJogador2,
+                        ANIMACAO_CHUTANDO
+                    );
+
+                    ataqueJogador2 = TEMPO_CHUTE;
+
+                    bool acertou = executarGolpe(
+                        posicaoJogador2,
+                        posicaoJogador1,
+                        jogador2ViradoEsquerda,
+                        ALCANCE_CHUTE,
+                        DANO_CHUTE,
+                        defendendo1,
+                        &partida.vidaJogador1,
+                        &energiaJogador2,
+                        &tempoDanoJogador1,
+                        &listaEfeitos
+                    );
+
+                    if (acertou && !defendendo1) {
+                        ataqueJogador1 = 0.0f;
+                    }
+                }
+                else if (
+                    IsKeyPressed(KEY_O) &&
+                    energiaJogador2 >= CUSTO_FOGO &&
+                    !fogoJogador2.ativa
+                ) {
+
+                    energiaJogador2 -= CUSTO_FOGO;
+
+                    definirAnimacaoPersonagem(
+                        &animacaoJogador2,
+                        ANIMACAO_ESPECIAL
+                    );
+
+                    ataqueJogador2 = TEMPO_ESPECIAL;
+
+                    criarBolaFogo(
+                        &fogoJogador2,
+                        posicaoJogador2,
+                        jogador2ViradoEsquerda,
+                        2
+                    );
+                }
+                else if (andando2) {
+
+                    definirAnimacaoPersonagem(
+                        &animacaoJogador2,
+                        ANIMACAO_CAMINHANDO
+                    );
+                }
+                else {
+
+                    definirAnimacaoPersonagem(
+                        &animacaoJogador2,
+                        ANIMACAO_PARADA
+                    );
+                }
+
+                atualizarAnimacaoPersonagem(
+                    &animacaoJogador2,
+                    dt
+                );
 
                 // =====================================
                 // ATUALIZAR AS BOLAS DE FOGO
@@ -1449,61 +1439,43 @@ int main(void) {
                     // JOGADOR 1 VENCE
                     if (vencedorRound == 1) {
 
-                        if (personagemJogador1 == 2) {
+                        definirAnimacaoPersonagem(
+                            &animacaoJogador1,
+                            ANIMACAO_VITORIA
+                        );
 
-                            definirAnimacaoLunaJogador(
-                                &animacaoJogador1,
-                                LUNA_VITORIA
-                            );
-                        }
-
-                        if (personagemJogador2 == 2) {
-
-                            definirAnimacaoLunaJogador(
-                                &animacaoJogador2,
-                                LUNA_DERROTADA
-                            );
-                        }
+                        definirAnimacaoPersonagem(
+                            &animacaoJogador2,
+                            ANIMACAO_DERROTADA
+                        );
                     }
 
                     // JOGADOR 2 VENCE
                     else if (vencedorRound == 2) {
 
-                        if (personagemJogador2 == 2) {
+                        definirAnimacaoPersonagem(
+                            &animacaoJogador2,
+                            ANIMACAO_VITORIA
+                        );
 
-                            definirAnimacaoLunaJogador(
-                                &animacaoJogador2,
-                                LUNA_VITORIA
-                            );
-                        }
-
-                        if (personagemJogador1 == 2) {
-
-                            definirAnimacaoLunaJogador(
-                                &animacaoJogador1,
-                                LUNA_DERROTADA
-                            );
-                        }
+                        definirAnimacaoPersonagem(
+                            &animacaoJogador1,
+                            ANIMACAO_DERROTADA
+                        );
                     }
 
                     // EMPATE
                     else {
 
-                        if (personagemJogador1 == 2) {
+                        definirAnimacaoPersonagem(
+                            &animacaoJogador1,
+                            ANIMACAO_PARADA
+                        );
 
-                            definirAnimacaoLunaJogador(
-                                &animacaoJogador1,
-                                LUNA_PARADA
-                            );
-                        }
-
-                        if (personagemJogador2 == 2) {
-
-                            definirAnimacaoLunaJogador(
-                                &animacaoJogador2,
-                                LUNA_PARADA
-                            );
-                        }
+                        definirAnimacaoPersonagem(
+                            &animacaoJogador2,
+                            ANIMACAO_PARADA
+                        );
                     }
                 }
 
@@ -1511,7 +1483,6 @@ int main(void) {
                 atualizarEfeitos(&listaEfeitos, dt);
             }
         }
-
         // =====================================
         // VOLTAR AO MENU
         // =====================================
@@ -1563,63 +1534,25 @@ int main(void) {
             // JOGADOR 1
             // =====================================
 
-            if (personagemJogador1 == 2) {
+            desenharPersonagem(
+                obterIndicePersonagem(personagemJogador1),
+                posicaoJogador1,
+                jogador1ViradoEsquerda,
+                &animacaoJogador1
+            );
 
-                desenharLunaJogador(
-                    posicaoJogador1,
-                    jogador1ViradoEsquerda,
-                    &animacaoJogador1
-                );
-            }
-            else {
 
-                DrawRectangle(
-                    (int)posicaoJogador1.x - 25,
-                    (int)posicaoJogador1.y - 110,
-                    50,
-                    110,
-                    Fade(cor1, 0.8f)
-                );
+                        // =====================================
+                        // JOGADOR 2
+                        // =====================================
 
-                DrawRectangleLines(
-                    (int)posicaoJogador1.x - 25,
-                    (int)posicaoJogador1.y - 110,
-                    50,
-                    110,
-                    BLACK
-                );
-            }
 
-            // =====================================
-            // JOGADOR 2
-            // =====================================
-
-            if (personagemJogador2 == 2) {
-
-                desenharLunaJogador(
-                    posicaoJogador2,
-                    jogador2ViradoEsquerda,
-                    &animacaoJogador2
-                );
-            }
-            else {
-
-                DrawRectangle(
-                    (int)posicaoJogador2.x - 25,
-                    (int)posicaoJogador2.y - 110,
-                    50,
-                    110,
-                    Fade(cor2, 0.8f)
-                );
-
-                DrawRectangleLines(
-                    (int)posicaoJogador2.x - 25,
-                    (int)posicaoJogador2.y - 110,
-                    50,
-                    110,
-                    BLACK
-                );
-            }
+                        desenharPersonagem(
+                            obterIndicePersonagem(personagemJogador2),
+                            posicaoJogador2,
+                            jogador2ViradoEsquerda,
+                            &animacaoJogador2
+                        );
 
             // =====================================
             // DESENHAR PROJETEIS
@@ -1726,7 +1659,7 @@ int main(void) {
     // =====================================
 
     liberarEfeitos(&listaEfeitos);
-    descarregarLuna();
+    descarregarPersonagens();
 
     CloseWindow();
 

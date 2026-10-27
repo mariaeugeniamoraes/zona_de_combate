@@ -1,171 +1,239 @@
-
 #include "personagens.h"
 #include <stddef.h>
 
-#define TOTAL_ANIMACOES_LUNA 11
 #define TAMANHO_FRAME 64
+#define INTERVALO_FRAME 0.125f
 
-static Texture2D texturasLuna[TOTAL_ANIMACOES_LUNA];
-static bool lunaCarregada = false;
+static Texture2D texturas[TOTAL_PERSONAGENS][TOTAL_ANIMACOES];
 
-static const int quantidadeFrames[TOTAL_ANIMACOES_LUNA] = {
-    4, 6, 4, 5, 3, 6, 3, 3, 6, 6, 8
+static bool personagensCarregados = false;
+
+static const int quantidadeFrames[TOTAL_ANIMACOES] = {
+4, 6, 4, 5, 3, 6, 3, 3, 6, 6, 8
 };
 
-void carregarLuna(void) {
+static const char *arquivos[TOTAL_PERSONAGENS][TOTAL_ANIMACOES] = {
+{
+"assets/personagens/luna/luna_parado.png",
+"assets/personagens/luna/luna_caminhando.png",
+"assets/personagens/luna/luna_socando.png",
+"assets/personagens/luna/luna_chutando.png",
+"assets/personagens/luna/luna_defendendo.png",
+"assets/personagens/luna/luna_pulando.png",
+"assets/personagens/luna/luna_agachando.png",
+"assets/personagens/luna/luna_dano.png",
+"assets/personagens/luna/luna_derrotado.png",
+"assets/personagens/luna/luna_vitoria.png",
+"assets/personagens/luna/luna_especial.png"
+},
+{
+"assets/personagens/ayra/ayra_parado.png",
+"assets/personagens/ayra/ayra_caminhando.png",
+"assets/personagens/ayra/ayra_socando.png",
+"assets/personagens/ayra/ayra_chutando.png",
+"assets/personagens/ayra/ayra_defendendo.png",
+"assets/personagens/ayra/ayra_pulando.png",
+"assets/personagens/ayra/ayra_agachando.png",
+"assets/personagens/ayra/ayra_dano.png",
+"assets/personagens/ayra/ayra_derrotado.png",
+"assets/personagens/ayra/ayra_vitoria.png",
+"assets/personagens/ayra/ayra_especial.png"
+},
+{
+"assets/personagens/kai/kai_parado.png",
+"assets/personagens/kai/kai_caminhando.png",
+"assets/personagens/kai/kai_socando.png",
+"assets/personagens/kai/kai_chutando.png",
+"assets/personagens/kai/kai_defendendo.png",
+"assets/personagens/kai/kai_pulando.png",
+"assets/personagens/kai/kai_agachando.png",
+"assets/personagens/kai/kai_dano.png",
+"assets/personagens/kai/kai_derrotado.png",
+"assets/personagens/kai/kai_vitoria.png",
+"assets/personagens/kai/kai_especial.png"
+},
+{
+"assets/personagens/nero/nero_parado.png",
+"assets/personagens/nero/nero_caminhando.png",
+"assets/personagens/nero/nero_socando.png",
+"assets/personagens/nero/nero_chutando.png",
+"assets/personagens/nero/nero_defendendo.png",
+"assets/personagens/nero/nero_pulando.png",
+"assets/personagens/nero/nero_agachando.png",
+"assets/personagens/nero/nero_dano.png",
+"assets/personagens/nero/nero_derrotado.png",
+"assets/personagens/nero/nero_vitoria.png",
+"assets/personagens/nero/nero_especial.png"
+}
+};
 
-    if (lunaCarregada) {
+void carregarPersonagens(void) {
+    if (personagensCarregados) {
         return;
     }
 
-    const char *arquivos[TOTAL_ANIMACOES_LUNA] = {
-        "assets/personagens/luna/luna_parado.png",
-        "assets/personagens/luna/luna_caminhando.png",
-        "assets/personagens/luna/luna_socando.png",
-        "assets/personagens/luna/luna_chutando.png",
-        "assets/personagens/luna/luna_defendendo.png",
-        "assets/personagens/luna/luna_pulando.png",
-        "assets/personagens/luna/luna_agachando.png",
-        "assets/personagens/luna/luna_dano.png",
-        "assets/personagens/luna/luna_derrotado.png",
-        "assets/personagens/luna/luna_vitoria.png",
-        "assets/personagens/luna/luna_especial.png"
-    };
+    for (int p = 0; p < TOTAL_PERSONAGENS; p++) {
+        TraceLog(LOG_INFO, "Carregando personagem: %d", p);
 
-    for (int i = 0; i < TOTAL_ANIMACOES_LUNA; i++) {
+        for (int a = 0; a < TOTAL_ANIMACOES; a++) {
+            texturas[p][a] = LoadTexture(arquivos[p][a]);
 
-        texturasLuna[i] = LoadTexture(arquivos[i]);
-
-        if (texturasLuna[i].id != 0) {
-            SetTextureFilter(
-                texturasLuna[i],
-                TEXTURE_FILTER_POINT
-            );
+            if (texturas[p][a].id != 0) {
+                SetTextureFilter(
+                    texturas[p][a],
+                    TEXTURE_FILTER_POINT
+                );
+            } else {
+                TraceLog(
+                    LOG_WARNING,
+                    "Nao foi possivel carregar: %s",
+                    arquivos[p][a]
+                );
+            }
         }
     }
 
-    lunaCarregada = true;
+    personagensCarregados = true;
 }
 
-void iniciarAnimacaoLuna(EstadoAnimacaoLuna *estado) {
+void iniciarAnimacaoPersonagem(EstadoAnimacao *estado) {
+if (estado == NULL) {
+return;
+}
 
-    if (estado == NULL) {
-        return;
-    }
+estado->animacao = ANIMACAO_PARADA;
+estado->frameAtual = 0;
+estado->tempoAnimacao = 0.0f;
 
-    estado->animacao = LUNA_PARADA;
+}
+
+void definirAnimacaoPersonagem(EstadoAnimacao *estado, int animacao) {
+if (estado == NULL || animacao < 0 || animacao >= TOTAL_ANIMACOES) {
+return;
+}
+
+if (estado->animacao != animacao) {
+    estado->animacao = animacao;
     estado->frameAtual = 0;
     estado->tempoAnimacao = 0.0f;
 }
 
-void definirAnimacaoLunaJogador(
-    EstadoAnimacaoLuna *estado,
-    AnimacaoLuna animacao
-) {
+}
 
-    if (estado == NULL) {
-        return;
-    }
+void atualizarAnimacaoPersonagem(EstadoAnimacao *estado, float dt) {
+if (estado == NULL || !personagensCarregados) {
+return;
+}
 
-    if (animacao < 0 || animacao >= TOTAL_ANIMACOES_LUNA) {
-        return;
-    }
+if (estado->animacao < 0 || estado->animacao >= TOTAL_ANIMACOES) {
+    return;
+}
 
-    if (estado->animacao != animacao) {
+estado->tempoAnimacao += dt;
 
-        estado->animacao = animacao;
+while (estado->tempoAnimacao >= INTERVALO_FRAME) {
+    estado->tempoAnimacao -= INTERVALO_FRAME;
+    estado->frameAtual++;
+
+    if (estado->frameAtual >= quantidadeFrames[estado->animacao]) {
         estado->frameAtual = 0;
-        estado->tempoAnimacao = 0.0f;
     }
 }
 
-void atualizarAnimacaoLunaJogador(
-    EstadoAnimacaoLuna *estado,
-    float dt
+}
+
+void desenharPersonagem(
+int personagem,
+Vector2 posicao,
+bool viradaEsquerda,
+const EstadoAnimacao *estado
 ) {
+if (estado == NULL || !personagensCarregados) {
+return;
+}
 
-    if (estado == NULL || !lunaCarregada) {
-        return;
-    }
+if (personagem < 0 || personagem >= TOTAL_PERSONAGENS) {
+    return;
+}
 
-    estado->tempoAnimacao += dt;
+if (estado->animacao < 0 || estado->animacao >= TOTAL_ANIMACOES) {
+    return;
+}
 
-    const float intervaloFrame = 0.125f;
+Texture2D textura = texturas[personagem][estado->animacao];
 
-    while (estado->tempoAnimacao >= intervaloFrame) {
+if (textura.id == 0) {
+    return;
+}
 
-        estado->tempoAnimacao -= intervaloFrame;
-        estado->frameAtual++;
+Rectangle origem = {
+    (float)(estado->frameAtual * TAMANHO_FRAME),
+    0.0f,
+    (float)TAMANHO_FRAME,
+    (float)TAMANHO_FRAME
+};
 
-        if (estado->frameAtual >=
-            quantidadeFrames[estado->animacao]) {
+if (viradaEsquerda) {
+    origem.width = -(float)TAMANHO_FRAME;
+}
 
-            estado->frameAtual = 0;
+Rectangle destino = {
+    posicao.x,
+    posicao.y - 128.0f,
+    128.0f,
+    128.0f
+};
+
+Vector2 centro = {64.0f, 0.0f};
+
+DrawTexturePro(textura, origem, destino, centro, 0.0f, WHITE);
+
+}
+
+void descarregarPersonagens(void) {
+if (!personagensCarregados) {
+return;
+}
+
+for (int p = 0; p < TOTAL_PERSONAGENS; p++) {
+    for (int a = 0; a < TOTAL_ANIMACOES; a++) {
+        if (texturas[p][a].id != 0) {
+            UnloadTexture(texturas[p][a]);
+            texturas[p][a] = (Texture2D){0};
         }
     }
 }
 
-void desenharLunaJogador(
-    Vector2 posicao,
-    bool viradaEsquerda,
-    const EstadoAnimacaoLuna *estado
-) {
+personagensCarregados = false;
 
-    if (estado == NULL || !lunaCarregada) {
-        return;
-    }
+}
 
-    Texture2D textura = texturasLuna[estado->animacao];
+/* Compatibilidade temporaria com a Luna */
 
-    if (textura.id == 0) {
-        return;
-    }
-
-    Rectangle origem = {
-        (float)(estado->frameAtual * TAMANHO_FRAME),
-        0.0f,
-        64.0f,
-        64.0f
-    };
-
-    if (viradaEsquerda) {
-        origem.width = -64.0f;
-    }
-
-    Rectangle destino = {
-        posicao.x,
-        posicao.y - 128.0f,
-        128.0f,
-        128.0f
-    };
-
-    Vector2 centro = {
-        64.0f,
-        0.0f
-    };
-
-    DrawTexturePro(
-        textura,
-        origem,
-        destino,
-        centro,
-        0.0f,
-        WHITE
-    );
+void carregarLuna(void) {
+carregarPersonagens();
 }
 
 void descarregarLuna(void) {
+descarregarPersonagens();
+}
 
-    if (!lunaCarregada) {
-        return;
-    }
+void iniciarAnimacaoLuna(EstadoAnimacaoLuna *estado) {
+iniciarAnimacaoPersonagem(estado);
+}
 
-    for (int i = 0; i < TOTAL_ANIMACOES_LUNA; i++) {
+void definirAnimacaoLunaJogador(EstadoAnimacaoLuna *estado, AnimacaoLuna animacao) {
+definirAnimacaoPersonagem(estado, animacao);
+}
 
-        if (texturasLuna[i].id != 0) {
-            UnloadTexture(texturasLuna[i]);
-        }
-    }
+void atualizarAnimacaoLunaJogador(EstadoAnimacaoLuna *estado, float dt) {
+atualizarAnimacaoPersonagem(estado, dt);
+}
 
-    lunaCarregada = false;
+void desenharLunaJogador(
+Vector2 posicao,
+bool viradaEsquerda,
+const EstadoAnimacaoLuna *estado
+) {
+desenharPersonagem(PERSONAGEM_LUNA, posicao, viradaEsquerda, estado);
 }
