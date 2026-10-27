@@ -38,20 +38,23 @@
 
 // Converte a escolha do menu para o identificador dos sprites.
 static int obterIndicePersonagem(int personagem) {
-    if (personagem == 1) {
-        return PERSONAGEM_AYRA;
-    }
-    else if (personagem == 2) {
-        return PERSONAGEM_LUNA;
-    }
-    else if (personagem == 3) {
-        return PERSONAGEM_KAI;
-    }
-    else if (personagem == 4) {
-        return PERSONAGEM_NERO;
-    }
+switch (personagem) {
+case 1:
+return PERSONAGEM_KAI;
 
-    return -1;
+    case 2:
+        return PERSONAGEM_LUNA;
+
+    case 3:
+        return PERSONAGEM_NERO;
+
+    case 4:
+        return PERSONAGEM_AYRA;
+
+    default:
+        return PERSONAGEM_LUNA;
+}
+
 }
 // =====================================
 // ESTRUTURA DA BOLA DE FOGO
@@ -1567,13 +1570,15 @@ int main(void) {
 
             desenharEfeitos(listaEfeitos);
 
+            
             desenharHUD(
                 &partida,
-                personagemJogador1,
-                personagemJogador2,
+                obterIndicePersonagem(personagemJogador1),
+                obterIndicePersonagem(personagemJogador2),
                 energiaJogador1,
                 energiaJogador2
             );
+
 
             DrawText(
                 "J1: A/D W F/G S C E | J2: SETAS K/L SHIFT O | P: PAUSA",

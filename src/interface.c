@@ -14,7 +14,9 @@
 #define Y_ROUNDS        96
 #define VELOCIDADE_RASTRO 45.0f
 
-static const char *NOMES[5] = { "???", "KAI", "LUNA", "NERO", "AYRA" };
+static const char *NOMES[5] = {
+    "LUNA", "AYRA", "KAI", "NERO", "???"
+};
 
 // RASTRO CLARO QUE DESCE DEVAGAR ATRAS DA BARRA DE VIDA
 static float rastroVida1 = 100.0f;
@@ -64,24 +66,35 @@ static Color corDaVida(int vida) {
 // DADOS DOS PERSONAGENS
 // =====================================
 const char *nomePersonagem(int personagem) {
-
-    if (personagem < 1 || personagem > 4) {
-        return NOMES[0];
+    if (personagem < 0 || personagem >= TOTAL_PERSONAGENS) {
+        return "???";
     }
 
     return NOMES[personagem];
 }
 
-Color corPersonagem(int personagem) {
 
+
+Color corPersonagem(int personagem) {
     switch (personagem) {
-        case 1: return YELLOW;
-        case 2: return RED;
-        case 3: return BLUE;
-        case 4: return GREEN;
-        default: return GRAY;
+        case PERSONAGEM_KAI:
+            return YELLOW;
+
+        case PERSONAGEM_LUNA:
+            return RED;
+
+        case PERSONAGEM_AYRA:
+            return GREEN;
+
+        case PERSONAGEM_NERO:
+            return BLUE;
+
+        default:
+            return GRAY;
     }
 }
+
+
 
 // =====================================
 // ATUALIZAR HUD

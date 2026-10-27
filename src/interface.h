@@ -3,6 +3,7 @@
 
 #include "raylib.h"
 #include "jogo.h"
+#include "personagens.h"
 
 // =====================================
 // HUD DA LUTA
@@ -10,11 +11,11 @@
 // numero do round e vitorias de cada jogador.
 // =====================================
 
-// ATUALIZA ANIMACOES DO HUD (chamar uma vez por frame durante a luta)
+// Atualiza o HUD uma vez por frame durante a luta.
 void atualizarHUD(const Partida *partida, float dt);
 
-// DESENHA O HUD (chamar depois de desenhar a arena e os personagens)
-// energia vai de 0 a 100
+// Desenha o HUD depois da arena e dos personagens.
+// A energia vai de 0 a 100.
 void desenharHUD(
     const Partida *partida,
     int personagemJogador1,
@@ -23,7 +24,8 @@ void desenharHUD(
     float energiaJogador2
 );
 
-// DADOS VISUAIS DOS PERSONAGENS (1 = KAI, 2 = LUNA, 3 = NERO, 4 = AYRA)
+// Dados visuais dos personagens.
+// Os índices são definidos em personagens.h.
 const char *nomePersonagem(int personagem);
 Color corPersonagem(int personagem);
 
