@@ -1,10 +1,10 @@
-
 #include "raylib.h"
 #include "jogo.h"
 #include "cenarios.h"
 #include "interface.h"
 #include "efeito.h"
 #include "personagens.h"
+#include "menu.h"
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -586,18 +586,20 @@ int main(void) {
 
         if (estado == MENU) {
 
-            if (IsKeyPressed(KEY_ONE)) {
+            OpcaoMenu opcao = atualizarMenuInicial(GetFrameTime());
+
+            if (opcao == OPCAO_JOGAR) {
 
                 personagemJogador1 = 0;
                 personagemJogador2 = 0;
 
                 estado = SELECAO;
             }
-            else if (IsKeyPressed(KEY_TWO)) {
+            else if (opcao == OPCAO_RANKING) {
 
                 estado = RANKING;
             }
-            else if (IsKeyPressed(KEY_THREE)) {
+            else if (opcao == OPCAO_SAIR) {
 
                 break;
             }
@@ -1514,7 +1516,7 @@ int main(void) {
 
         if (estado == MENU) {
 
-            desenharMenu();
+            desenharMenuInicial();
         }
         else if (estado == SELECAO) {
 
@@ -1665,6 +1667,9 @@ int main(void) {
 
     liberarEfeitos(&listaEfeitos);
     descarregarPersonagens();
+    descarregarLuna();
+    descarregarMenuInicial();
+    descarregarCenarios();
 
     CloseWindow();
 

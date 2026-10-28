@@ -39,6 +39,10 @@ const char *nomeArena(ArenaId arena);
 int tileNaPosicao(float x, float y);
 int posicaoSolida(float x, float y);
 
+// DESENHA A ARENA EM PIXEL ART (320x180 ampliado 3x)
 void desenharArena(void);
+
+// LIBERA A TEXTURA USADA PELO DESENHO DAS ARENAS (chamar antes do CloseWindow)
+void descarregarCenarios(void);
 
 #endif
