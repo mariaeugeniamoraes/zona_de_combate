@@ -19,9 +19,6 @@
 
 #define DANO_SOCO 10
 #define DANO_CHUTE 15
-#define DANO_FOGO 25
-
-#define CUSTO_FOGO 50.0f
 
 #define ALCANCE_SOCO 85.0f
 #define ALCANCE_CHUTE 115.0f
@@ -31,8 +28,15 @@
 #define TEMPO_ESPECIAL 1.0f
 #define TEMPO_DANO 0.375f
 
-#define VELOCIDADE_FOGO 460.0f
-#define RAIO_FOGO 19.0f
+#define PROJETIL_RAIO 1
+#define PROJETIL_FOGO 2
+#define PROJETIL_AGUA 3
+#define PROJETIL_VENTO 4
+
+#define CUSTO_ESPECIAL 50.0f
+#define DANO_ESPECIAL 25
+#define VELOCIDADE_ESPECIAL 460.0f
+#define RAIO_ESPECIAL 19.0f
 
 #define TEMPO_FIM_ROUND 1.6f
 
@@ -56,6 +60,24 @@ return PERSONAGEM_KAI;
 }
 
 }
+int obterTipoEspecial(int personagem) {
+    switch (personagem) {
+        case 1:
+            return PROJETIL_RAIO;
+
+        case 2:
+            return PROJETIL_FOGO;
+
+        case 3:
+            return PROJETIL_AGUA;
+
+        case 4:
+            return PROJETIL_VENTO;
+
+        default:
+            return PROJETIL_FOGO;
+    }
+}
 // =====================================
 // ESTRUTURA DA BOLA DE FOGO
 // =====================================
@@ -66,7 +88,8 @@ typedef struct {
     int direcao;
     int dono;
     float tempo;
-} BolaFogo;
+    int tipo;
+} Projetil;
 
 // =====================================
 // VERIFICAR ALCANCE DOS GOLPES
@@ -233,16 +256,18 @@ static bool executarGolpe(
 // CRIAR BOLA DE FOGO
 // =====================================
 
-static void criarBolaFogo(
-    BolaFogo *bola,
+static void criarProjetil(
+    Projetil *bola,
     Vector2 personagem,
     bool viradoEsquerda,
-    int dono
+    int dono,
+    int tipo
 ) {
     bola->ativa = true;
     bola->direcao = viradoEsquerda ? -1 : 1;
     bola->dono = dono;
     bola->tempo = 0.0f;
+    bola->tipo = tipo;
 
     bola->posicao = (Vector2){
         personagem.x + bola->direcao * 55.0f,
@@ -251,156 +276,134 @@ static void criarBolaFogo(
 }
 
 // =====================================
-// ATUALIZAR BOLA DE FOGO
-// =====================================
-
-static void atualizarBolaFogo(
-    BolaFogo *bola,
-    Vector2 adversario,
-    bool adversarioDefendendo,
-    int *vidaAdversario,
-    float *tempoDanoAdversario,
-    float *tempoAtaqueAdversario,
-    Efeito **efeitos,
-    float dt
-) {
-    if (!bola->ativa) {
-        return;
-    }
-
-    float xAnterior = bola->posicao.x;
-
-    bola->posicao.x +=
-        bola->direcao * VELOCIDADE_FOGO * dt;
-
-    bola->tempo += dt;
-
-    // A bola deve cruzar a faixa horizontal do corpo.
-    float esquerdaCorpo = adversario.x - 28.0f;
-    float direitaCorpo = adversario.x + 28.0f;
-
-    float inicioTrajeto = fminf(
-        xAnterior,
-        bola->posicao.x
-    );
-
-    float fimTrajeto = fmaxf(
-        xAnterior,
-        bola->posicao.x
-    );
-
-    bool cruzouCorpo =
-        fimTrajeto + RAIO_FOGO >= esquerdaCorpo &&
-        inicioTrajeto - RAIO_FOGO <= direitaCorpo;
-
-    // Centro aproximado do corpo do adversario.
-    float centroY = adversario.y - 70.0f;
-
-    bool mesmaAltura =
-        fabsf(bola->posicao.y - centroY) <= 58.0f;
-
-    if (cruzouCorpo && mesmaAltura) {
-
-        int dano = adversarioDefendendo
-            ? DANO_FOGO / 5
-            : DANO_FOGO;
-
-        aplicarDano(vidaAdversario, dano);
-
-        if (
-            !adversarioDefendendo &&
-            *vidaAdversario > 0
-        ) {
-            *tempoDanoAdversario = TEMPO_DANO;
-            *tempoAtaqueAdversario = 0.0f;
-        }
-
-        efeitoImpacto(
-            efeitos,
-            (Vector2){
-                adversario.x,
-                adversario.y - 70.0f
-            }
-        );
-
-        efeitoFlash(
-            efeitos,
-            ORANGE,
-            0.12f
-        );
-
-        bola->ativa = false;
-        return;
-    }
-
-    // Desaparece quando sai da arena.
-    if (
-        bola->posicao.x < -50.0f ||
-        bola->posicao.x > LARGURA_TELA + 50.0f
-    ) {
-        bola->ativa = false;
-    }
-}
-
-// =====================================
 // DESENHAR BOLA DE FOGO
 // =====================================
 
-static void desenharBolaFogo(const BolaFogo *bola) {
+static void desenharProjetil(const Projetil *bola) {
     if (!bola->ativa) {
         return;
     }
 
     Vector2 centro = bola->posicao;
-
     float oscilacao = sinf(bola->tempo * 25.0f);
 
-    // Rastro
-    for (int i = 1; i <= 5; i++) {
+    /* KAI: RAIO */
+    if (bola->tipo == PROJETIL_RAIO) {
 
+        for (int i = 1; i <= 5; i++) {
+            Vector2 rastro = {
+                centro.x - bola->direcao * i * 10.0f,
+                centro.y
+            };
+
+            DrawCircleV(rastro, 12.0f - i * 1.5f,
+                        Fade(SKYBLUE, 0.35f));
+        }
+
+        DrawCircleV(centro, 25.0f, Fade(YELLOW, 0.25f));
+
+        Vector2 raio1 = {
+            centro.x - 12.0f, centro.y - 15.0f
+        };
+
+        Vector2 raio2 = {
+            centro.x + 3.0f, centro.y - 3.0f
+        };
+
+        Vector2 raio3 = {
+            centro.x - 5.0f, centro.y + 15.0f
+        };
+
+        DrawLineEx(raio1, raio2, 7.0f, YELLOW);
+        DrawLineEx(raio2, raio3, 7.0f, WHITE);
+        DrawCircleV(centro, 7.0f, SKYBLUE);
+    }
+
+    /* LUNA: FOGO */
+    else if (bola->tipo == PROJETIL_FOGO) {
+
+        for (int i = 1; i <= 5; i++) {
+            Vector2 rastro = {
+                centro.x - bola->direcao * i * 12.0f,
+                centro.y + sinf(bola->tempo * 18.0f + i) * 5.0f
+            };
+
+            DrawCircleV(
+                rastro,
+                RAIO_ESPECIAL - i * 2.2f,
+                Fade(ORANGE, 0.45f - i * 0.06f)
+            );
+        }
+
+        DrawCircleV(
+            centro,
+            29.0f + oscilacao * 3.0f,
+            Fade(ORANGE, 0.25f)
+        );
+
+        DrawCircleV(centro, RAIO_ESPECIAL + oscilacao * 2.0f, RED);
+        DrawCircleV(centro, 15.0f, ORANGE);
+        DrawCircleV(centro, 9.0f, YELLOW);
+        DrawCircleV(centro, 4.0f, WHITE);
+    }
+
+    /* NERO: AGUA */
+    else if (bola->tipo == PROJETIL_AGUA) {
+
+        for (int i = 1; i <= 5; i++) {
+            Vector2 rastro = {
+                centro.x - bola->direcao * i * 9.0f,
+                centro.y + sinf(bola->tempo * 12.0f + i) * 4.0f
+            };
+
+            DrawCircleV(
+                rastro,
+                13.0f - i * 1.8f,
+                Fade(SKYBLUE, 0.4f - i * 0.05f)
+            );
+        }
+
+        DrawCircleV(centro, 25.0f, Fade(BLUE, 0.25f));
+        DrawCircleV(centro, 18.0f, BLUE);
+        DrawCircleV(centro, 13.0f, SKYBLUE);
+    DrawCircleV(centro, 7.0f, WHITE);
+}
+
+/* AYRA: VENTO */
+else if (bola->tipo == PROJETIL_VENTO) {
+
+    for (int i = 1; i <= 4; i++) {
         Vector2 rastro = {
-            centro.x - bola->direcao * i * 12.0f,
-            centro.y + sinf(bola->tempo * 18.0f + i) * 5.0f
+            centro.x - bola->direcao * i * 13.0f,
+            centro.y + sinf(bola->tempo * 15.0f + i) * 8.0f
         };
 
         DrawCircleV(
             rastro,
-            RAIO_FOGO - i * 2.2f,
-            Fade(ORANGE, 0.45f - i * 0.06f)
+            14.0f - i * 2.5f,
+            Fade(LIGHTGRAY, 0.35f)
         );
     }
 
-    // Brilho externo
-    DrawCircleV(
-        centro,
-        29.0f + oscilacao * 3.0f,
-        Fade(ORANGE, 0.25f)
+    DrawCircleV(centro, 24.0f, Fade(WHITE, 0.2f));
+
+    DrawEllipse(
+        (int)centro.x,
+        (int)centro.y,
+        19.0f,
+        10.0f + oscilacao * 2.0f,
+        SKYBLUE
     );
 
-    // Chama principal
-    DrawCircleV(
-        centro,
-        RAIO_FOGO + oscilacao * 2.0f,
-        RED
-    );
-
-    DrawCircleV(
-        centro,
-        15.0f,
-        ORANGE
-    );
-
-    DrawCircleV(
-        centro,
-        9.0f,
-        YELLOW
-    );
-
-    DrawCircleV(
-        centro,
-        4.0f,
+    DrawEllipse(
+        (int)centro.x,
+        (int)centro.y,
+        12.0f,
+        5.0f,
         WHITE
     );
+}
+
 }
 
 // =====================================
@@ -420,8 +423,8 @@ static void reiniciarLutadores(
     float *vy2,
     bool *pulando1,
     bool *pulando2,
-    BolaFogo *fogo1,
-    BolaFogo *fogo2
+    Projetil *fogo1,
+    Projetil *fogo2
 ) {
     *p1 = (Vector2){300.0f, ALTURA_CHAO};
     *p2 = (Vector2){660.0f, ALTURA_CHAO};
@@ -472,7 +475,82 @@ static void prepararVisualPartida(Efeito **efeitos) {
         0.8f
     );
 }
+static void atualizarProjetil(
+    Projetil *bola,
+    Vector2 adversario,
+    bool adversarioDefendendo,
+    int *vidaAdversario,
+    float *tempoDanoAdversario,
+    float *tempoAtaqueAdversario,
+    Efeito **efeitos,
+    float dt
+) {
+    if (!bola->ativa) {
+        return;
+    }
 
+    float xAnterior = bola->posicao.x;
+
+    bola->posicao.x +=
+        bola->direcao * VELOCIDADE_ESPECIAL * dt;
+
+    bola->tempo += dt;
+
+    float esquerdaCorpo = adversario.x - 28.0f;
+    float direitaCorpo = adversario.x + 28.0f;
+
+    float inicioTrajeto = fminf(xAnterior, bola->posicao.x);
+    float fimTrajeto = fmaxf(xAnterior, bola->posicao.x);
+
+    bool cruzouCorpo =
+        fimTrajeto + RAIO_ESPECIAL >= esquerdaCorpo &&
+        inicioTrajeto - RAIO_ESPECIAL <= direitaCorpo;
+
+    float centroY = adversario.y - 70.0f;
+
+    bool mesmaAltura =
+        fabsf(bola->posicao.y - centroY) <= 58.0f;
+
+    if (cruzouCorpo && mesmaAltura) {
+        int dano = adversarioDefendendo
+            ? DANO_ESPECIAL / 5
+            : DANO_ESPECIAL;
+
+        aplicarDano(vidaAdversario, dano);
+
+        if (!adversarioDefendendo && *vidaAdversario > 0) {
+            *tempoDanoAdversario = TEMPO_DANO;
+            *tempoAtaqueAdversario = 0.0f;
+        }
+
+        efeitoImpacto(
+            efeitos,
+            (Vector2){adversario.x, adversario.y - 70.0f}
+        );
+
+        efeitoFlash(efeitos, ORANGE, 0.12f);
+
+        bola->ativa = false;
+        return;
+    }
+
+    if (
+        bola->posicao.x < -50.0f ||
+        bola->posicao.x > LARGURA_TELA + 50.0f
+    ) {
+        bola->ativa = false;
+    }
+}
+static void atualizarProjetil(
+    Projetil *bola,
+    Vector2 adversario,
+    bool adversarioDefendendo,
+    int *vidaAdversario,
+    float *tempoDanoAdversario,
+    float *tempoAtaqueAdversario,
+    Efeito **efeitos,
+    float dt
+);
 // =====================================
 // FUNCAO PRINCIPAL
 // =====================================
@@ -552,8 +630,8 @@ int main(void) {
     // PROJETEIS INDEPENDENTES
     // =====================================
 
-    BolaFogo fogoJogador1 = {0};
-    BolaFogo fogoJogador2 = {0};
+    Projetil fogoJogador1 = {0};
+    Projetil fogoJogador2 = {0};
 
     // =====================================
     // CONTROLE DO FIM DO ROUND
@@ -1036,7 +1114,14 @@ int main(void) {
                 }
                 else if (ataqueJogador1 > 0.0f) {
 
-                    // Aguarda terminar a animacao.
+                    if (animacaoJogador1.animacao == ANIMACAO_ESPECIAL &&
+                        animacaoJogador1.terminou) {
+
+                        definirAnimacaoPersonagem(
+                            &animacaoJogador1,
+                            ANIMACAO_PARADA
+                        );
+                    }
                 }
                 else if (IsKeyPressed(KEY_F)) {
 
@@ -1092,11 +1177,11 @@ int main(void) {
                 }
                 else if (
                     IsKeyPressed(KEY_E) &&
-                    energiaJogador1 >= CUSTO_FOGO &&
+                    energiaJogador1 >= CUSTO_ESPECIAL &&
                     !fogoJogador1.ativa
                 ) {
 
-                    energiaJogador1 -= CUSTO_FOGO;
+                    energiaJogador1 -= CUSTO_ESPECIAL;
 
                     definirAnimacaoPersonagem(
                         &animacaoJogador1,
@@ -1105,11 +1190,12 @@ int main(void) {
 
                     ataqueJogador1 = TEMPO_ESPECIAL;
 
-                    criarBolaFogo(
+                    criarProjetil(
                         &fogoJogador1,
                         posicaoJogador1,
                         jogador1ViradoEsquerda,
-                        1
+                        1,
+                        obterTipoEspecial(personagemJogador1)
                     );
                 }
                 else if (andando1) {
@@ -1167,7 +1253,14 @@ int main(void) {
                 }
                 else if (ataqueJogador2 > 0.0f) {
 
-                    // Aguarda terminar a animacao.
+                    if (animacaoJogador2.animacao == ANIMACAO_ESPECIAL &&
+                        animacaoJogador2.terminou) {
+
+                        definirAnimacaoPersonagem(
+                            &animacaoJogador2,
+                            ANIMACAO_PARADA
+                        );
+                    }
                 }
                 else if (IsKeyPressed(KEY_K)) {
 
@@ -1223,11 +1316,11 @@ int main(void) {
                 }
                 else if (
                     IsKeyPressed(KEY_O) &&
-                    energiaJogador2 >= CUSTO_FOGO &&
+                    energiaJogador2 >= CUSTO_ESPECIAL &&
                     !fogoJogador2.ativa
                 ) {
 
-                    energiaJogador2 -= CUSTO_FOGO;
+                    energiaJogador2 -= CUSTO_ESPECIAL;
 
                     definirAnimacaoPersonagem(
                         &animacaoJogador2,
@@ -1236,11 +1329,12 @@ int main(void) {
 
                     ataqueJogador2 = TEMPO_ESPECIAL;
 
-                    criarBolaFogo(
+                    criarProjetil(
                         &fogoJogador2,
                         posicaoJogador2,
                         jogador2ViradoEsquerda,
-                        2
+                        2,
+                        obterTipoEspecial(personagemJogador2)
                     );
                 }
                 else if (andando2) {
@@ -1267,7 +1361,7 @@ int main(void) {
                 // ATUALIZAR AS BOLAS DE FOGO
                 // =====================================
 
-                atualizarBolaFogo(
+                atualizarProjetil(
                     &fogoJogador1,
                     posicaoJogador2,
                     defendendo2,
@@ -1278,7 +1372,7 @@ int main(void) {
                     dt
                 );
 
-                atualizarBolaFogo(
+                atualizarProjetil(
                     &fogoJogador2,
                     posicaoJogador1,
                     defendendo1,
@@ -1563,8 +1657,8 @@ int main(void) {
             // DESENHAR PROJETEIS
             // =====================================
 
-            desenharBolaFogo(&fogoJogador1);
-            desenharBolaFogo(&fogoJogador2);
+            desenharProjetil(&fogoJogador1);
+            desenharProjetil(&fogoJogador2);
 
             // =====================================
             // EFEITOS E HUD

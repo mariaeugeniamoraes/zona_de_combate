@@ -97,49 +97,65 @@ void carregarPersonagens(void) {
 }
 
 void iniciarAnimacaoPersonagem(EstadoAnimacao *estado) {
-if (estado == NULL) {
-return;
-}
+    if (estado == NULL) {
+        return;
+    }
 
-estado->animacao = ANIMACAO_PARADA;
-estado->frameAtual = 0;
-estado->tempoAnimacao = 0.0f;
-
+    estado->animacao = ANIMACAO_PARADA;
+    estado->frameAtual = 0;
+    estado->tempoAnimacao = 0.0f;
+    estado->terminou = false;
 }
 
 void definirAnimacaoPersonagem(EstadoAnimacao *estado, int animacao) {
-if (estado == NULL || animacao < 0 || animacao >= TOTAL_ANIMACOES) {
-return;
-}
+    if (estado == NULL ||
+        animacao < 0 ||
+        animacao >= TOTAL_ANIMACOES) {
+        return;
+    }
 
-if (estado->animacao != animacao) {
-    estado->animacao = animacao;
-    estado->frameAtual = 0;
-    estado->tempoAnimacao = 0.0f;
-}
-
-}
-
-void atualizarAnimacaoPersonagem(EstadoAnimacao *estado, float dt) {
-if (estado == NULL || !personagensCarregados) {
-return;
-}
-
-if (estado->animacao < 0 || estado->animacao >= TOTAL_ANIMACOES) {
-    return;
-}
-
-estado->tempoAnimacao += dt;
-
-while (estado->tempoAnimacao >= INTERVALO_FRAME) {
-    estado->tempoAnimacao -= INTERVALO_FRAME;
-    estado->frameAtual++;
-
-    if (estado->frameAtual >= quantidadeFrames[estado->animacao]) {
+    if (estado->animacao != animacao) {
+        estado->animacao = animacao;
         estado->frameAtual = 0;
+        estado->tempoAnimacao = 0.0f;
+        estado->terminou = false;
     }
 }
 
+void atualizarAnimacaoPersonagem(EstadoAnimacao *estado, float dt) {
+    if (estado == NULL || !personagensCarregados) {
+        return;
+    }
+
+    if (estado->animacao < 0 ||
+        estado->animacao >= TOTAL_ANIMACOES) {
+        return;
+    }
+
+    if (estado->terminou) {
+        return;
+    }
+
+    estado->tempoAnimacao += dt;
+
+    while (estado->tempoAnimacao >= INTERVALO_FRAME) {
+        estado->tempoAnimacao -= INTERVALO_FRAME;
+        estado->frameAtual++;
+
+        if (estado->frameAtual >= quantidadeFrames[estado->animacao]) {
+
+            if (estado->animacao == ANIMACAO_ESPECIAL) {
+                estado->frameAtual =
+                    quantidadeFrames[estado->animacao] - 1;
+
+                estado->tempoAnimacao = 0.0f;
+                estado->terminou = true;
+                return;
+            }
+
+            estado->frameAtual = 0;
+        }
+    }
 }
 
 void desenharPersonagem(

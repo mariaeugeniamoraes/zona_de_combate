@@ -43,6 +43,7 @@ typedef struct {
     int animacao;
     int frameAtual;
     float tempoAnimacao;
+    bool terminou;
 } EstadoAnimacao;
 
 // Mantem os nomes antigos usados pela Luna
