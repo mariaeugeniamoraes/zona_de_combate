@@ -46,4 +46,15 @@ void desenharLunaJogador(
     const EstadoAnimacaoLuna *estado
 );
 
+// Animacoes compartilhadas pelos quatro personagens
+void carregarOutrosPersonagens(void);
+void descarregarOutrosPersonagens(void);
+
+void desenharOutroPersonagem(
+    int personagem,
+    Vector2 posicao,
+    bool viradoEsquerda,
+    const EstadoAnimacaoLuna *estado
+);
+
 #endif

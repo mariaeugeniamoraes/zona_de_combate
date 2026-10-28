@@ -469,6 +469,7 @@ int main(void) {
     SetTargetFPS(60);
 
     carregarLuna();
+    carregarOutrosPersonagens();
 
     EstadoJogo estado = MENU;
 
@@ -1575,22 +1576,13 @@ int main(void) {
             }
             else {
 
-                DrawRectangle(
-                    (int)posicaoJogador1.x - 25,
-                    (int)posicaoJogador1.y - 110,
-                    50,
-                    110,
-                    Fade(cor1, 0.8f)
-                );
-
-                DrawRectangleLines(
-                    (int)posicaoJogador1.x - 25,
-                    (int)posicaoJogador1.y - 110,
-                    50,
-                    110,
-                    BLACK
-                );
-            }
+    desenharOutroPersonagem(
+        personagemJogador1,
+        posicaoJogador1,
+        jogador1ViradoEsquerda,
+        &animacaoJogador1
+    );
+}
 
             // =====================================
             // JOGADOR 2
@@ -1606,22 +1598,13 @@ int main(void) {
             }
             else {
 
-                DrawRectangle(
-                    (int)posicaoJogador2.x - 25,
-                    (int)posicaoJogador2.y - 110,
-                    50,
-                    110,
-                    Fade(cor2, 0.8f)
-                );
-
-                DrawRectangleLines(
-                    (int)posicaoJogador2.x - 25,
-                    (int)posicaoJogador2.y - 110,
-                    50,
-                    110,
-                    BLACK
-                );
-            }
+    desenharOutroPersonagem(
+        personagemJogador2,
+        posicaoJogador2,
+        jogador2ViradoEsquerda,
+        &animacaoJogador2
+    );
+}
 
             // =====================================
             // DESENHAR PROJETEIS
