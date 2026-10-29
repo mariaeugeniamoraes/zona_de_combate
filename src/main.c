@@ -5,6 +5,7 @@
 #include "efeito.h"
 #include "personagens.h"
 #include "menu.h"
+#include "telas.h"
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -1547,7 +1548,7 @@ int main(void) {
         }
         else if (estado == SELECAO) {
 
-            desenharSelecao(
+            desenharSelecaoPixel(
                 personagemJogador1,
                 personagemJogador2
             );
@@ -1700,7 +1701,7 @@ int main(void) {
         }
         else if (estado == RANKING) {
 
-            desenharRanking();
+            desenharRankingPixel();
         }
 
         EndDrawing();
@@ -1714,6 +1715,8 @@ int main(void) {
     descarregarLuna();
     descarregarMenuInicial();
     descarregarCenarios();
+
+    descarregarTelas();
 
     CloseWindow();
 
