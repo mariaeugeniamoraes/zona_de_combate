@@ -5,6 +5,7 @@
 #include "efeito.h"
 #include "personagens.h"
 #include "menu.h"
+#include "telas.h"
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -566,7 +567,7 @@ int main(void) {
     SetExitKey(KEY_NULL);
     SetTargetFPS(60);
 
-    carregarPersonagens();  
+    carregarPersonagens();
     EstadoJogo estado = MENU;
 
     int personagemJogador1 = 0;
@@ -1614,7 +1615,7 @@ int main(void) {
         }
         else if (estado == SELECAO) {
 
-            desenharSelecao(
+            desenharSelecaoPixel(
                 personagemJogador1,
                 personagemJogador2
             );
@@ -1628,9 +1629,8 @@ int main(void) {
 
             Color cor1 = corPersonagem(personagemJogador1);
             Color cor2 = corPersonagem(personagemJogador2);
-
             // =====================================
-            // JOGADOR 1
+            // DESENHAR JOGADOR 1
             // =====================================
 
             desenharPersonagem(
@@ -1640,18 +1640,16 @@ int main(void) {
                 &animacaoJogador1
             );
 
+            // =====================================
+            // DESENHAR JOGADOR 2
+            // =====================================
 
-                        // =====================================
-                        // JOGADOR 2
-                        // =====================================
-
-
-                        desenharPersonagem(
-                            obterIndicePersonagem(personagemJogador2),
-                            posicaoJogador2,
-                            jogador2ViradoEsquerda,
-                            &animacaoJogador2
-                        );
+            desenharPersonagem(
+                obterIndicePersonagem(personagemJogador2),
+                posicaoJogador2,
+                jogador2ViradoEsquerda,
+                &animacaoJogador2
+            );
 
             // =====================================
             // DESENHAR PROJETEIS
@@ -1749,23 +1747,25 @@ int main(void) {
         }
         else if (estado == RANKING) {
 
-            desenharRanking();
+            desenharRankingPixel();
         }
 
         EndDrawing();
     }
 
-    // =====================================
+        // =====================================
     // LIBERAR RECURSOS
     // =====================================
 
     liberarEfeitos(&listaEfeitos);
+
     descarregarPersonagens();
-    descarregarLuna();
     descarregarMenuInicial();
     descarregarCenarios();
+    descarregarTelas();
 
     CloseWindow();
 
     return 0;
 }
+

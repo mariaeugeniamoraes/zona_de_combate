@@ -1,5 +1,6 @@
 #include "personagens.h"
 #include <stddef.h>
+#include <stdio.h>
 
 #define TAMANHO_FRAME 64
 #define INTERVALO_FRAME 0.125f
@@ -233,6 +234,7 @@ carregarPersonagens();
 void descarregarLuna(void) {
 descarregarPersonagens();
 }
+
 
 void iniciarAnimacaoLuna(EstadoAnimacaoLuna *estado) {
 iniciarAnimacaoPersonagem(estado);
