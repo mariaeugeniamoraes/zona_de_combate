@@ -10,6 +10,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <math.h>
+#include "telas.h"
 
 // =====================================
 // CONFIGURACOES
@@ -1747,7 +1748,11 @@ int main(void) {
         }
         else if (estado == RANKING) {
 
+
             desenharRankingPixel();
+
+           
+
         }
 
         EndDrawing();
