@@ -1,4 +1,4 @@
-# ⚔️ ZONA DE COMBATE
+# ZONA DE COMBATE
 
 ### Um jogo de luta 2D desenvolvido em C com raylib
 
@@ -8,28 +8,28 @@ Cada lutador possui um elemento próprio, e cada partida exige estratégia, refl
 
 ---
 
-## 🎮 Sobre o jogo
+##  Sobre o jogo
 
 Inspirado nos jogos clássicos de luta em 2D, Zona de Combate combina combate local para dois jogadores, personagens animados, arenas temáticas e efeitos visuais.
 
 O projeto foi desenvolvido utilizando a linguagem C e a biblioteca gráfica raylib, com aplicação prática de conceitos de programação e estruturas de dados.
 
-### ✨ Funcionalidades
+###  Funcionalidades
 
-- 🎮 Modo versus local para dois jogadores
-- ⚔️ Sistema de combate com socos, chutes e defesa
-- 🏃 Movimentação, pulos e agachamento
-- 💥 Poderes especiais exclusivos para cada personagem
-- ❤️ Barras de vida e energia
-- ⏱️ Cronômetro e sistema de rounds
-- 🏆 Tela de vitória com animações e efeitos visuais
-- 📊 Ranking de personagens com vitórias salvas em arquivo
-- ⏸️ Sistema de pausa durante a partida
-- 🎨 Cenários e personagens em pixel art
+-  Modo versus local para dois jogadores
+-  Sistema de combate com socos, chutes e defesa
+-  Movimentação, pulos e agachamento
+-  Poderes especiais exclusivos para cada personagem
+-  Barras de vida e energia
+-  Cronômetro e sistema de rounds
+-  Tela de vitória com animações e efeitos visuais
+-  Ranking de personagens com vitórias salvas em arquivo
+-  Sistema de pausa durante a partida
+-  Cenários e personagens em pixel art
 
 ---
 
-## 🥊 Conheça os lutadores
+##  Conheça os lutadores
 
 | Personagem | Elemento | Habilidade especial |
 |---|---|---|
@@ -42,15 +42,15 @@ Cada personagem possui animações próprias para movimentação, combate, vitó
 
 ---
 
-## 🏟️ Arenas
+##  Arenas
 
 O jogo possui dois cenários com identidades visuais diferentes.
 
-### 🎡 Parque Abandonado
+###  Parque Abandonado
 
 Um antigo parque de diversões, com roda-gigante, montanha-russa, carrossel e uma atmosfera misteriosa.
 
-### 🏛️ Coliseu
+###  Coliseu
 
 Uma arena inspirada nos antigos coliseus, com arquibancadas, bandeiras, iluminação e detalhes arquitetônicos.
 
@@ -58,9 +58,9 @@ Os cenários são construídos em pixel art e utilizam matrizes para representar
 
 ---
 
-## 🕹️ Controles
+##  Controles
 
-### 🔵 Jogador 1
+###  Jogador 1
 
 | Tecla | Ação |
 |---|---|
@@ -72,7 +72,7 @@ Os cenários são construídos em pixel art e utilizam matrizes para representar
 | `G` | Chutar |
 | `E` | Poder especial |
 
-### 🔴 Jogador 2
+###  Jogador 2
 
 | Tecla | Ação |
 |---|---|
@@ -96,7 +96,7 @@ Os cenários são construídos em pixel art e utilizam matrizes para representar
 
 ---
 
-## 🏆 Sistema de rounds e ranking
+##  Sistema de rounds e ranking
 
 As partidas são disputadas em rounds. O primeiro jogador a conquistar duas vitórias vence o confronto.
 
@@ -113,7 +113,7 @@ O ranking apresenta os quatro lutadores organizados por quantidade de vitórias,
 
 ---
 
-## 💻 Tecnologias utilizadas
+##  Tecnologias utilizadas
 
 | Tecnologia | Utilização |
 |---|---|
@@ -124,7 +124,7 @@ O ranking apresenta os quatro lutadores organizados por quantidade de vitórias,
 
 ---
 
-## 🧠 Conceitos de programação aplicados
+##  Conceitos de programação aplicados
 
 O projeto utiliza conceitos fundamentais de programação em C, aplicados diretamente às mecânicas do jogo.
 
@@ -156,7 +156,7 @@ Esses conceitos foram utilizados de forma funcional, contribuindo para a organiz
 
 ---
 
-## 🚀 Como executar
+##  Como executar
 
 ### Pré-requisitos
 
@@ -192,7 +192,7 @@ gcc src/*.c -o jogo $(pkg-config --cflags --libs raylib) -lX11 -lm
 
 ---
 
-## 📁 Organização do projeto
+## Organização do projeto
 
 ```text
 zona_de_combate/
@@ -227,7 +227,7 @@ zona_de_combate/
 
 ---
 
-## 🎥 Demonstração
+##  Demonstração
 
 O funcionamento do jogo pode ser acompanhado no vídeo de demonstração:
 
@@ -237,7 +237,7 @@ O vídeo apresenta as principais funcionalidades, incluindo seleção de persona
 
 ---
 
-## 👨‍💻 Equipe de desenvolvimento
+##  Equipe de desenvolvimento
 
 Projeto desenvolvido em grupo para a disciplina de programação em C.
 
@@ -251,7 +251,7 @@ Projeto desenvolvido em grupo para a disciplina de programação em C.
 
 ---
 
-## 📚 Objetivo acadêmico
+##  Objetivo acadêmico
 
 O principal objetivo do projeto é aplicar conceitos estudados durante a disciplina por meio da construção de um jogo interativo e funcional.
 
@@ -259,6 +259,6 @@ Além do desenvolvimento da jogabilidade, o projeto busca demonstrar a utilizaç
 
 ---
 
-### ⚔️ ESCOLHA SEU LUTADOR. DOMINE SEU ELEMENTO. CONQUISTE A VITÓRIA.
+###  ESCOLHA SEU LUTADOR. DOMINE SEU ELEMENTO. CONQUISTE A VITÓRIA.
 
 **Zona de Combate — Onde cada round conta!**
