@@ -19,6 +19,15 @@ void desenharSelecaoPixel(int personagemJogador1, int personagemJogador2);
 // TELA DE RANKING (le o arquivo dados/ranking.txt ao entrar na tela)
 void desenharRankingPixel(void);
 
+// TELA DE FIM DE PARTIDA
+void desenharVitoriaPixel(
+    int vencedorPartida,
+    int vitoriasJogador1,
+    int vitoriasJogador2,
+    int personagemJogador1,
+    int personagemJogador2
+);
+
 // LIBERA AS TEXTURAS DAS TELAS (chamar antes do CloseWindow)
 void descarregarTelas(void);
 

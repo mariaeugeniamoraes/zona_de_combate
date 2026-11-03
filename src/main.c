@@ -10,7 +10,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <math.h>
-#include "telas.h"
+
 
 // =====================================
 // CONFIGURACOES
@@ -1738,14 +1738,16 @@ int main(void) {
                 );
             }
         }
-        else if (estado == VITORIA) {
+       else if (estado == VITORIA) {
 
-            desenharVitoria(
-                vencedorPartida,
-                partida.vitoriasJogador1,
-                partida.vitoriasJogador2
-            );
-        }
+    desenharVitoriaPixel(
+        vencedorPartida,
+        partida.vitoriasJogador1,
+        partida.vitoriasJogador2,
+        personagemJogador1,
+        personagemJogador2
+    );
+}
         else if (estado == RANKING) {
 
 
