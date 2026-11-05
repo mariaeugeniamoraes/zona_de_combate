@@ -1,4 +1,5 @@
 #include "efeito.h"
+#include "janela.h"
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
@@ -76,7 +77,7 @@ static void inserirNoFim(Efeito **lista, Efeito *novo) {
 // =====================================
 void anunciarTexto(Efeito **lista, const char *texto, Color cor, float atraso, float duracao) {
 
-    Vector2 centro = { GetScreenWidth() / 2.0f, GetScreenHeight() * 0.40f };
+    Vector2 centro = { JANELA_LARGURA / 2.0f, JANELA_ALTURA * 0.40f };
     Efeito *novo = criarEfeito(EFEITO_TEXTO, centro, duracao, atraso, cor);
 
     if (novo == NULL) {
@@ -212,7 +213,7 @@ static void desenharFaisca(const Efeito *efeito, float progresso) {
 
 static void desenharFlash(const Efeito *efeito, float progresso) {
 
-    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(efeito->cor, 0.6f * (1.0f - progresso)));
+    DrawRectangle(0, 0, JANELA_LARGURA, JANELA_ALTURA, Fade(efeito->cor, 0.6f * (1.0f - progresso)));
 }
 
 static void desenharRaio(const Efeito *efeito, float progresso) {

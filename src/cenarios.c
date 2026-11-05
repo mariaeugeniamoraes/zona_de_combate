@@ -1,4 +1,5 @@
 #include "cenarios.h"
+#include "janela.h"
 #include <math.h>
 
 // =====================================
@@ -1112,6 +1113,7 @@ void desenharArena(void) {
     }
 
     EndTextureMode();
+    retomarQuadro();
 
     // ...E AMPLIA PARA A JANELA (3x). O BLEND PRE-MULTIPLICADO EVITA QUE AS PARTES
     // SEMITRANSPARENTES (neblina, luz, brilhos) FIQUEM MAIS ESCURAS NA AMPLIACAO

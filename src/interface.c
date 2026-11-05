@@ -1,4 +1,5 @@
 #include "interface.h"
+#include "janela.h"
 #include <math.h>
 
 // =====================================
@@ -184,7 +185,7 @@ static void desenharVitoriasRound(int xInicial, int vitorias, int sentido, Color
 
 static void desenharRelogio(const Partida *partida, float tempo) {
 
-    int cx = GetScreenWidth() / 2;
+    int cx = JANELA_LARGURA / 2;
 
     DrawRectangle(cx - 50, 20, 100, 62, (Color){ 20, 20, 30, 230 });
     DrawRectangleLines(cx - 50, 20, 100, 62, WHITE);
@@ -230,7 +231,7 @@ void desenharHUD(
 ) {
 
     float tempo = (float)GetTime();
-    int larguraTela = GetScreenWidth();
+    int larguraTela = JANELA_LARGURA;
 
     int vida1 = limitarInt(partida->vidaJogador1, 0, 100);
     int vida2 = limitarInt(partida->vidaJogador2, 0, 100);

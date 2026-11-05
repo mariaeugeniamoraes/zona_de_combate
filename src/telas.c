@@ -1,4 +1,5 @@
 #include "telas.h"
+#include "janela.h"
 #include <math.h>
 #include <stdio.h>
 
@@ -358,10 +359,11 @@ static void comecarTelaPixel(void) {
 static void terminarTelaPixel(void) {
 
     EndTextureMode();
+    retomarQuadro();
 
     float escala = fminf(
-        GetScreenWidth() / (float)BASE_W,
-        GetScreenHeight() / (float)BASE_H
+        JANELA_LARGURA / (float)BASE_W,
+        JANELA_ALTURA / (float)BASE_H
     );
 
     if (escala >= 1.0f) {
@@ -369,10 +371,10 @@ static void terminarTelaPixel(void) {
     }
 
     float x =
-        (GetScreenWidth() - BASE_W * escala) / 2.0f;
+        (JANELA_LARGURA - BASE_W * escala) / 2.0f;
 
     float y =
-        (GetScreenHeight() - BASE_H * escala) / 2.0f;
+        (JANELA_ALTURA - BASE_H * escala) / 2.0f;
 
     BeginBlendMode(BLEND_ALPHA_PREMULTIPLY);
 

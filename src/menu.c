@@ -1,4 +1,5 @@
 #include "menu.h"
+#include "janela.h"
 #include <math.h>
 #include <stddef.h>
 
@@ -209,7 +210,7 @@ void descarregarMenuInicial(void) {
 // =====================================
 static float escalaTela(void) {
 
-    float escala = fminf(GetScreenWidth() / (float)BASE_W, GetScreenHeight() / (float)BASE_H);
+    float escala = fminf(JANELA_LARGURA / (float)BASE_W, JANELA_ALTURA / (float)BASE_H);
 
     // ESCALA INTEIRA DEIXA TODOS OS PIXELS DO MESMO TAMANHO
     if (escala >= 1.0f) {
@@ -222,8 +223,8 @@ static float escalaTela(void) {
 static Vector2 origemTela(float escala) {
 
     return (Vector2){
-        (GetScreenWidth() - BASE_W * escala) / 2.0f,
-        (GetScreenHeight() - BASE_H * escala) / 2.0f
+        (JANELA_LARGURA - BASE_W * escala) / 2.0f,
+        (JANELA_ALTURA - BASE_H * escala) / 2.0f
     };
 }
 
@@ -892,6 +893,7 @@ void desenharMenuInicial(void) {
     }
 
     EndTextureMode();
+    retomarQuadro();
 
     // ...E DEPOIS AMPLIADO PARA A JANELA (3x em 960x540)
     float escala = escalaTela();

@@ -6,6 +6,7 @@
 #include "personagens.h"
 #include "menu.h"
 #include "telas.h"
+#include "janela.h"
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -559,11 +560,7 @@ static void atualizarProjetil(
 
 int main(void) {
 
-    InitWindow(
-        LARGURA_TELA,
-        ALTURA_TELA,
-        "Zona de Combate"
-    );
+    iniciarJanela("Zona de Combate");
 
     SetExitKey(KEY_NULL);
     SetTargetFPS(60);
@@ -648,6 +645,8 @@ int main(void) {
     // =====================================
 
     while (!WindowShouldClose()) {
+
+        atualizarJanela();
 
         // =====================================
         // PAUSA
@@ -1607,8 +1606,7 @@ int main(void) {
         // DESENHAR
         // =====================================
 
-        BeginDrawing();
-        ClearBackground(BLACK);
+        comecarQuadro();
 
         if (estado == MENU) {
 
@@ -1692,8 +1690,8 @@ int main(void) {
                 DrawRectangle(
                     0,
                     0,
-                    GetScreenWidth(),
-                    GetScreenHeight(),
+                    JANELA_LARGURA,
+                    JANELA_ALTURA,
                     Fade(BLACK, 0.75f)
                 );
 
@@ -1702,7 +1700,7 @@ int main(void) {
                 DrawText(
                     titulo,
                     (
-                        GetScreenWidth() -
+                        JANELA_LARGURA -
                         MeasureText(titulo, 40)
                     ) / 2,
                     190,
@@ -1715,7 +1713,7 @@ int main(void) {
                 DrawText(
                     continuar,
                     (
-                        GetScreenWidth() -
+                        JANELA_LARGURA -
                         MeasureText(continuar, 25)
                     ) / 2,
                     290,
@@ -1729,7 +1727,7 @@ int main(void) {
                 DrawText(
                     voltar,
                     (
-                        GetScreenWidth() -
+                        JANELA_LARGURA -
                         MeasureText(voltar, 22)
                     ) / 2,
                     350,
@@ -1757,7 +1755,7 @@ int main(void) {
 
         }
 
-        EndDrawing();
+        terminarQuadro();
     }
 
         // =====================================
@@ -1771,8 +1769,7 @@ int main(void) {
     descarregarCenarios();
     descarregarTelas();
 
-    CloseWindow();
+    fecharJanela();
 
     return 0;
 }
-
