@@ -6,6 +6,7 @@
 #include "personagens.h"
 #include "menu.h"
 #include "telas.h"
+#include "controles.h"
 #include "janela.h"
 
 #include <stdbool.h>
@@ -673,6 +674,10 @@ int main(void) {
                 personagemJogador2 = 0;
 
                 estado = SELECAO;
+            }
+            else if (opcao == OPCAO_CONTROLES) {
+
+                estado = CONTROLES;
             }
             else if (opcao == OPCAO_RANKING) {
 
@@ -1398,57 +1403,6 @@ int main(void) {
                 }
 
                 // =====================================
-                // EFEITOS PROVISORIOS
-                // =====================================
-
-                Vector2 origemEfeito = {
-                    posicaoJogador1.x +
-                        (jogador1ViradoEsquerda
-                            ? -30.0f : 30.0f),
-                    posicaoJogador1.y - 70.0f
-                };
-
-                int direcao =
-                    jogador1ViradoEsquerda ? -1 : 1;
-
-                if (IsKeyPressed(KEY_ONE)) {
-
-                    efeitoEspecial(
-                        &listaEfeitos,
-                        EFEITO_RAIO,
-                        origemEfeito,
-                        direcao
-                    );
-                }
-                else if (IsKeyPressed(KEY_TWO)) {
-
-                    efeitoEspecial(
-                        &listaEfeitos,
-                        EFEITO_FOGO,
-                        origemEfeito,
-                        direcao
-                    );
-                }
-                else if (IsKeyPressed(KEY_THREE)) {
-
-                    efeitoEspecial(
-                        &listaEfeitos,
-                        EFEITO_AGUA,
-                        origemEfeito,
-                        direcao
-                    );
-                }
-                else if (IsKeyPressed(KEY_FOUR)) {
-
-                    efeitoEspecial(
-                        &listaEfeitos,
-                        EFEITO_VENTO,
-                        origemEfeito,
-                        direcao
-                    );
-                }
-
-                // =====================================
                 // VERIFICAR FIM DO ROUND
                 // =====================================
 
@@ -1754,6 +1708,10 @@ int main(void) {
            
 
         }
+        else if (estado == CONTROLES) {
+
+            desenharControlesPixel();
+        }
 
         terminarQuadro();
     }
@@ -1768,6 +1726,7 @@ int main(void) {
     descarregarMenuInicial();
     descarregarCenarios();
     descarregarTelas();
+    descarregarControles();
 
     fecharJanela();
 

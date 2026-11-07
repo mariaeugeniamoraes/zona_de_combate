@@ -13,6 +13,7 @@
 #define ALTURA_ENERGIA  10
 #define Y_ENERGIA       70
 #define Y_ROUNDS        96
+#define ENERGIA_PARA_ESPECIAL 50.0f
 #define VELOCIDADE_RASTRO 45.0f
 
 static const char *NOMES[5] = {
@@ -144,8 +145,9 @@ static void desenharBarraEnergia(int x, float energia, int ancoradaDireita, floa
     int xEnergia = ancoradaDireita ? x + LARGURA_ENERGIA - largura : x;
     Color cor = { 60, 140, 255, 255 };
 
-    // ENERGIA CHEIA: A BARRA PULSA E MOSTRA "ESPECIAL!"
-    if (energia >= 100.0f) {
+    // ENERGIA SUFICIENTE PARA O ESPECIAL (custa metade da barra):
+    // A BARRA PULSA E MOSTRA "ESPECIAL!"
+    if (energia >= ENERGIA_PARA_ESPECIAL) {
 
         float pulso = 0.5f + 0.5f * sinf(tempo * 10.0f);
 
@@ -165,6 +167,11 @@ static void desenharBarraEnergia(int x, float energia, int ancoradaDireita, floa
 
     DrawRectangle(x - 2, Y_ENERGIA - 2, LARGURA_ENERGIA + 4, ALTURA_ENERGIA + 4, (Color){ 20, 20, 30, 230 });
     DrawRectangle(xEnergia, Y_ENERGIA, largura, ALTURA_ENERGIA, cor);
+
+    // MARCA NO MEIO DA BARRA: A PARTIR DAQUI O ESPECIAL PODE SER USADO
+    int xMarca = x + (int)(ENERGIA_PARA_ESPECIAL * LARGURA_ENERGIA / 100.0f) - 1;
+
+    DrawRectangle(xMarca, Y_ENERGIA - 2, 2, ALTURA_ENERGIA + 4, Fade(WHITE, 0.8f));
 }
 
 static void desenharVitoriasRound(int xInicial, int vitorias, int sentido, Color cor) {

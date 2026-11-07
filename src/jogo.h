@@ -9,7 +9,8 @@ typedef enum {
     LUTA,
     PAUSA,
     VITORIA,
-    RANKING
+    RANKING,
+    CONTROLES
 } EstadoJogo;
 
 // ESTRUTURA PARA O RANKING

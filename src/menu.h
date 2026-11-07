@@ -12,12 +12,13 @@
 // usando os sprites de "parado" de cada um.
 //
 // Controles: SETAS ou W/S para escolher, ENTER/ESPACO
-// para confirmar, atalhos 1/2/3 e mouse.
+// para confirmar, atalhos 1/2/3/4 e mouse.
 // =====================================
 
 typedef enum {
     OPCAO_NENHUMA = 0,
     OPCAO_JOGAR,
+    OPCAO_CONTROLES,
     OPCAO_RANKING,
     OPCAO_SAIR
 } OpcaoMenu;

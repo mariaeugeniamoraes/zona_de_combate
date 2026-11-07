@@ -13,12 +13,12 @@
 // =====================================
 // MEDIDAS DO MENU (em pixels da tela base)
 // =====================================
-#define TOTAL_OPCOES     3
+#define TOTAL_OPCOES     4
 #define LARGURA_BOTAO    96
-#define ALTURA_BOTAO     17
+#define ALTURA_BOTAO     15
 #define INCLINACAO       6
-#define Y_PRIMEIRO_BOTAO 84
-#define ESPACO_BOTOES    21
+#define Y_PRIMEIRO_BOTAO 81
+#define ESPACO_BOTOES    17
 #define DURACAO_INTRO    0.6f
 
 #define TOTAL_LUTADORES  4
@@ -57,10 +57,11 @@ static LutadorMenu lutadores[TOTAL_LUTADORES] = {
 // =====================================
 // OPCOES DO MENU
 // =====================================
-static const char *TEXTOS_OPCOES[TOTAL_OPCOES] = { "JOGAR", "RANKING", "SAIR" };
+static const char *TEXTOS_OPCOES[TOTAL_OPCOES] = { "JOGAR", "CONTROLES", "RANKING", "SAIR" };
 
 static const Color CORES_OPCOES[TOTAL_OPCOES] = {
     { 255, 120, 40, 255 },
+    { 90, 160, 230, 255 },
     { 240, 175, 40, 255 },
     { 215, 50, 70, 255 }
 };
@@ -72,7 +73,7 @@ static RenderTexture2D telaPixel;
 static int recursosCarregados = 0;
 
 static int opcaoSelecionada = 0;
-static float destaque[TOTAL_OPCOES] = { 1.0f, 0.0f, 0.0f };   // 0 = normal, 1 = selecionado
+static float destaque[TOTAL_OPCOES] = { 1.0f, 0.0f, 0.0f, 0.0f };   // 0 = normal, 1 = selecionado
 static float tempoIntro = 0.0f;
 static double ultimaAtualizacao = -10.0;
 
@@ -294,8 +295,9 @@ OpcaoMenu atualizarMenuInicial(float dt) {
 
     // ATALHOS ANTIGOS (1, 2, 3) CONTINUAM FUNCIONANDO
     if (IsKeyPressed(KEY_ONE))   { opcaoSelecionada = 0; return OPCAO_JOGAR; }
-    if (IsKeyPressed(KEY_TWO))   { opcaoSelecionada = 1; return OPCAO_RANKING; }
-    if (IsKeyPressed(KEY_THREE)) { opcaoSelecionada = 2; return OPCAO_SAIR; }
+    if (IsKeyPressed(KEY_TWO))   { opcaoSelecionada = 1; return OPCAO_CONTROLES; }
+    if (IsKeyPressed(KEY_THREE)) { opcaoSelecionada = 2; return OPCAO_RANKING; }
+    if (IsKeyPressed(KEY_FOUR))  { opcaoSelecionada = 3; return OPCAO_SAIR; }
 
     // MOUSE (convertido para as coordenadas da tela pequena)
     Vector2 mouse = mouseNaTelaBase();
@@ -810,7 +812,7 @@ static void desenharBotao(int i, float tempo) {
     DrawTextEx(fonte, TEXTOS_OPCOES[i], posTexto, 10, 2, corTexto);
 
     // NUMERO DO ATALHO
-    DrawText(TextFormat("%d", i + 1), (int)d.x + 4, (int)y0 + 4, 10, Fade(WHITE, (0.3f + 0.4f * s) * aparecer));
+    DrawText(TextFormat("%d", i + 1), (int)d.x + 4, (int)y0 + 3, 10, Fade(WHITE, (0.3f + 0.4f * s) * aparecer));
 
     // SETAS ANIMADAS DOS DOIS LADOS DO SELECIONADO
     if (s > 0.5f) {
