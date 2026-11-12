@@ -42,6 +42,9 @@ int posicaoSolida(float x, float y);
 // DESENHA A ARENA EM PIXEL ART (320x180 ampliado 3x)
 void desenharArena(void);
 
+// DESENHA UMA ARENA EM MINIATURA DENTRO DE UM RETANGULO (previa da tela de escolha)
+void desenharPreviaArena(ArenaId arena, Rectangle destino, Color tinta);
+
 // LIBERA A TEXTURA USADA PELO DESENHO DAS ARENAS (chamar antes do CloseWindow)
 void descarregarCenarios(void);
 

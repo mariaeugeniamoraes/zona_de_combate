@@ -7,6 +7,7 @@
 #include "menu.h"
 #include "telas.h"
 #include "controles.h"
+#include "selecao_arena.h"
 #include "janela.h"
 
 #include <stdbool.h>
@@ -456,12 +457,10 @@ static void reiniciarLutadores(
 // PREPARAR ARENA
 // =====================================
 
-static void prepararVisualPartida(Efeito **efeitos) {
+static void prepararVisualPartida(Efeito **efeitos, ArenaId arena) {
     liberarEfeitos(efeitos);
 
-    carregarArena(
-        (ArenaId)GetRandomValue(0, TOTAL_ARENAS - 1)
-    );
+    carregarArena(arena);
 
     anunciarTexto(
         efeitos,
@@ -734,8 +733,28 @@ int main(void) {
             if (
                 personagemJogador1 != 0 &&
                 personagemJogador2 != 0 &&
-                IsKeyPressed(KEY_ENTER)
+                IsKeyPressed(KEY_ENTER) &&
+                !IsKeyDown(KEY_LEFT_ALT) &&
+                !IsKeyDown(KEY_RIGHT_ALT)
             ) {
+
+                estado = SELECAO_ARENA;
+            }
+        }
+
+        // =====================================
+        // ESCOLHA DA ARENA
+        // =====================================
+
+        else if (estado == SELECAO_ARENA) {
+
+            int arenaEscolhida = atualizarSelecaoArena();
+
+            if (arenaEscolhida == SELECAO_ARENA_VOLTAR) {
+
+                estado = SELECAO;
+            }
+            else if (arenaEscolhida >= 0) {
 
                 iniciarPartida(&partida);
 
@@ -769,7 +788,7 @@ int main(void) {
                 jogador1ViradoEsquerda = false;
                 jogador2ViradoEsquerda = true;
 
-                prepararVisualPartida(&listaEfeitos);
+                prepararVisualPartida(&listaEfeitos, (ArenaId)arenaEscolhida);
 
                 estado = LUTA;
             }
@@ -1569,6 +1588,13 @@ int main(void) {
         else if (estado == SELECAO) {
 
             desenharSelecaoPixel(
+                personagemJogador1,
+                personagemJogador2
+            );
+        }
+        else if (estado == SELECAO_ARENA) {
+
+            desenharSelecaoArena(
                 personagemJogador1,
                 personagemJogador2
             );

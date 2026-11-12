@@ -1,4 +1,3 @@
-
 #ifndef JOGO_H
 #define JOGO_H
 
@@ -10,7 +9,8 @@ typedef enum {
     PAUSA,
     VITORIA,
     RANKING,
-    CONTROLES
+    CONTROLES,
+    SELECAO_ARENA
 } EstadoJogo;
 
 // ESTRUTURA PARA O RANKING

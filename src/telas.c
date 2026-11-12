@@ -1349,7 +1349,7 @@ void desenharSelecaoPixel(
 
         desenharRodape(
             "ESC VOLTAR",
-            "ENTER - LUTAR!",
+            "ENTER - ESCOLHER ARENA",
             COR_AMARELO,
             tempo
         );

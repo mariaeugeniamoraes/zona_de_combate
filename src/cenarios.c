@@ -1083,13 +1083,9 @@ void descarregarCenarios(void) {
 }
 
 // =====================================
-// DESENHAR A ARENA ATUAL
+// DESENHA UMA ARENA NA TELA PEQUENA (320x180)
 // =====================================
-void desenharArena(void) {
-
-    if (!mapaPronto) {
-        montarMapa();
-    }
+static void renderizarArena(ArenaId arena) {
 
     if (!telaCarregada) {
 
@@ -1100,12 +1096,11 @@ void desenharArena(void) {
 
     float tempo = (float)GetTime();
 
-    // DESENHA A ARENA NA TELA PEQUENA...
     BeginTextureMode(telaArena);
 
     ClearBackground(BLACK);
 
-    if (arenaAtual == ARENA_COLISEU) {
+    if (arena == ARENA_COLISEU) {
         desenharColiseu(tempo);
     }
     else {
@@ -1114,19 +1109,55 @@ void desenharArena(void) {
 
     EndTextureMode();
     retomarQuadro();
+}
 
-    // ...E AMPLIA PARA A JANELA (3x). O BLEND PRE-MULTIPLICADO EVITA QUE AS PARTES
-    // SEMITRANSPARENTES (neblina, luz, brilhos) FIQUEM MAIS ESCURAS NA AMPLIACAO
+// =====================================
+// AMPLIA A TELA PEQUENA PARA UM RETANGULO DA JANELA
+// O BLEND PRE-MULTIPLICADO EVITA QUE AS PARTES SEMITRANSPARENTES
+// (neblina, luz, brilhos) FIQUEM MAIS ESCURAS NA AMPLIACAO
+// =====================================
+static void ampliarArena(Rectangle destino, Color tinta) {
+
     BeginBlendMode(BLEND_ALPHA_PREMULTIPLY);
 
     DrawTexturePro(
         telaArena.texture,
         (Rectangle){ 0, 0, (float)BASE_W, -(float)BASE_H },
-        (Rectangle){ 0, 0, (float)LARGURA_TELA, (float)ALTURA_TELA },
+        destino,
         (Vector2){ 0, 0 },
         0.0f,
-        WHITE
+        tinta
     );
 
     EndBlendMode();
+}
+
+// =====================================
+// DESENHAR A ARENA ATUAL
+// =====================================
+void desenharArena(void) {
+
+    if (!mapaPronto) {
+        montarMapa();
+    }
+
+    renderizarArena(arenaAtual);
+
+    ampliarArena(
+        (Rectangle){ 0, 0, (float)LARGURA_TELA, (float)ALTURA_TELA },
+        WHITE
+    );
+}
+
+// =====================================
+// PREVIA DE UMA ARENA (usada na tela de escolha de arena)
+// =====================================
+void desenharPreviaArena(ArenaId arena, Rectangle destino, Color tinta) {
+
+    if (arena < 0 || arena >= TOTAL_ARENAS) {
+        arena = ARENA_PARQUE;
+    }
+
+    renderizarArena(arena);
+    ampliarArena(destino, tinta);
 }
