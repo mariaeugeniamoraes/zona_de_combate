@@ -231,7 +231,7 @@ zona_de_combate/
 
 O funcionamento do jogo pode ser acompanhado no vídeo de demonstração:
 
-**[Assistir à gameplay](INSERIR_LINK_DO_VIDEO)**
+**[Assistir à gameplay](https://youtu.be/-YnHB_87Tf0?si=gcNbEGrynvenL1uH)**
 
 O vídeo apresenta as principais funcionalidades, incluindo seleção de personagens, combate, habilidades especiais, sistema de rounds, tela de vitória e ranking.
 
@@ -243,9 +243,9 @@ Projeto desenvolvido em grupo para a disciplina de programação em C.
 
 **Integrantes:**
 
-- Integrante 1
-- Integrante 2
-- Integrante 3
+- Daniel Santana Bezerra
+- Maria Eugênia Mateus Morais
+- José Victor Telles de Araújo Pereira Tavares
 
 *Substituir pelos nomes completos dos integrantes da equipe.*
 
