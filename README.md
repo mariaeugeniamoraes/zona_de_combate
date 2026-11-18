@@ -247,7 +247,6 @@ Projeto desenvolvido em grupo para a disciplina de programação em C.
 - Maria Eugênia Mateus Morais
 - José Victor Telles de Araújo Pereira Tavares
 
-*Substituir pelos nomes completos dos integrantes da equipe.*
 
 ---
 
