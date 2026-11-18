@@ -198,32 +198,31 @@ gcc src/*.c -o jogo $(pkg-config --cflags --libs raylib) -lX11 -lm
 zona_de_combate/
 │
 ├── src/
-│   ├── main.c
-│   ├── jogo.c
-│   ├── jogo.h
-│   ├── personagens.c
-│   ├── personagens.h
-│   ├── cenarios.c
-│   ├── cenarios.h
-│   ├── efeito.c
-│   ├── efeito.h
-│   ├── interface.c
-│   ├── interface.h
-│   ├── menu.c
-│   ├── menu.h
-│   ├── telas.c
-│   └── telas.h
+│   ├── main.c              # Loop principal, estados do jogo e lógica da luta
+│   ├── jogo.c / jogo.h     # Estados, struct Partida, rounds e gravação do ranking
+│   ├── personagens.c / .h  # Sprites e animações dos lutadores
+│   ├── cenarios.c / .h     # Arenas em pixel art e matriz do mapa
+│   ├── interface.c / .h    # HUD: vida, energia, cronômetro e rounds
+│   ├── efeito.c / .h       # Efeitos visuais em lista encadeada (malloc/free)
+│   ├── janela.c / .h       # Tela virtual 960x540 e tela cheia (F11)
+│   ├── menu.c / .h         # Menu inicial
+│   ├── telas.c / .h        # Seleção de personagens, ranking e tela de vitória
+│   ├── controles.c / .h    # Tela de controles
+│   └── selecao_arena.c / .h  # Tela de escolha de arena
 │
 ├── assets/
 │   └── personagens/
+│       ├── kai/            # Sprites de cada animação do personagem
+│       │   └── efeitos/    # Auras e efeitos do elemento
+│       ├── luna/
+│       ├── nero/
+│       └── ayra/
 │
 ├── dados/
-│   └── ranking.txt
+│   └── ranking.txt         # Vitórias salvas (uma linha por partida)
 │
 └── README.md
 ```
-
-*Estrutura baseada nos módulos utilizados no desenvolvimento. Alguns arquivos ou diretórios podem variar conforme a versão final do repositório.*
 
 ---
 
